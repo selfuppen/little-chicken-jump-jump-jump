@@ -40,15 +40,20 @@
                   <svg viewBox="0 0 32 30" aria-hidden="true"><path d="M16 27 C13 24 2 17 2 9 A7 7 0 0 1 16 5 A7 7 0 0 1 30 9 C30 17 19 24 16 27Z" /></svg>
                   <svg viewBox="0 0 32 30" aria-hidden="true"><path d="M16 27 C13 24 2 17 2 9 A7 7 0 0 1 16 5 A7 7 0 0 1 30 9 C30 17 19 24 16 27Z" /></svg>
                 </div>
+                <span id="jump-count">跳过 0 个</span>
               </div>
-              <button class="pause-button" id="pause-button" hidden aria-label="暂停游戏" aria-keyshortcuts="p Escape" title="暂停 / 继续（P 或 Esc）"><svg viewBox="0 0 20 20" aria-hidden="true"><path d="M6 4v12M14 4v12" /></svg><span>暂停</span></button>
-              <div class="reward-panel"><span>★ 积分 <strong id="points">0</strong></span><span id="jump-count">跳过 0 个</span><button id="shop-button" hidden>进入商城</button></div>
+              <div class="hud-controls">
+                <button class="pause-button" id="pause-button" hidden aria-label="暂停游戏" aria-keyshortcuts="p Escape" title="暂停 / 继续（P 或 Esc）"><svg viewBox="0 0 20 20" aria-hidden="true"><path d="M6 4v12M14 4v12" /></svg><span>暂停</span></button>
+                <div class="reward-panel"><span aria-hidden="true">★</span><span>积分<strong id="points">0</strong></span></div>
+              </div>
               <div class="score-panel">
                 <span class="hud-caption">成功躲避</span>
                 <span class="score" id="score" aria-live="polite" aria-atomic="true">0</span>
                 <span class="score-target">/ 1000</span>
               </div>
             </div>
+
+            <button id="shop-button" hidden aria-label="进入积分商城" title="点击小房子，进入积分商城"></button>
 
             <div class="overlay" id="overlay">
               <div class="overlay-card" id="overlay-card">
@@ -119,7 +124,7 @@
         <li><strong>爱心是你的勇气</strong><p>碰撞扣一颗爱心，之后短暂无敌。每实际跳过 10 个障碍，回复 1/10 颗爱心，最多三颗。三颗爱心用完后，等 2.5 秒再点击「再试一次」重新挑战。</p></li>
         <li><strong>管道里藏着一片海</strong><p>管道随机出现在某条赛道，换到那条赛道，从上方落入绿色管道进入海洋，再跳进深绿色管道返回草地。海洋里的跳跃更利落，落地更快。</p></li>
         <li><strong>海洋里的塑料垃圾</strong><p>小心塑料瓶、黑色塑料袋和透明塑料袋。渔网很少见，平均每 100 个海洋障碍约 1～2 个。碰到渔网会扣一颗爱心，稍等自动挣脱；深绿色落网有提前预警，可以换道或跳过。</p></li>
-        <li><strong>星星与皮肤商城</strong><p>草地和海洋跑道上会随机出现发光的金色五角星，收集一颗获得 1 积分，管道上不会出现。每实际跳过 15 个障碍生成一次商城，换道躲避、空跳和管道不计入。点击「进入商城 → 皮肤 → 水果／动物」，旋转查看外观。点击未解锁皮肤的兑换按钮，确认兑换后解锁，再点击穿戴；积分不足会提示。一次只能穿一件皮肤，积分和已解锁皮肤会保存在本机。</p></li>
+        <li><strong>星星与皮肤商城</strong><p>草地和海洋跑道上会随机出现发光的金色五角星，收集一颗获得 1 积分，管道上不会出现。每实际跳过 15 个障碍生成一次商城，换道躲避、空跳和管道不计入。点击路边的小房子进入积分商城，再选择「皮肤 → 水果／动物」，旋转查看外观。苹果和橙子外套免费，选择即可穿戴。其他皮肤确认兑换后解锁，再点击穿戴；积分不足会提示。一次只能穿一件皮肤，积分和已解锁皮肤会保存在本机。</p></li>
         <li><strong>向 1000 分出发</strong><p>达到 1000 分即可通关。点击「暂停」休息，电脑也可按 P 或 Esc 暂停或继续。切换标签页会自动暂停。</p></li>
       </ul>
       <button class="primary-button" id="help-done">知道啦，去跳跳！</button>

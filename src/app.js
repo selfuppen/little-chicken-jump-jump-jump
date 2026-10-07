@@ -18,7 +18,7 @@ try {
   const profile = JSON.parse(localStorage.getItem(PROFILE_KEY) || 'null');
   if (profile) {
     game.points = Number.isSafeInteger(profile.points) && profile.points >= 0 ? profile.points : 0;
-    game.unlockedSkins = new Set(SKINS.filter((skin) => Array.isArray(profile.skins) && profile.skins.includes(skin.id)).map((skin) => skin.id));
+    game.unlockedSkins = new Set(SKINS.filter((skin) => skin.price === 0 || (Array.isArray(profile.skins) && profile.skins.includes(skin.id))).map((skin) => skin.id));
     game.equipSkin(profile.equipped ?? null);
   }
 } catch { /* A new profile is usable when browser storage is unavailable. */ }
@@ -50,8 +50,7 @@ function showToast(message, seconds = 2.4) {
 
 function syncUI() {
   $('points').textContent = game.points;
-  $('jump-count').textContent = `跳过 ${game.jumpedCount} 个 · 商城还需 ${15 - game.jumpedCount % 15}`;
-  $('shop-button').hidden = !game.shopAvailable || !['running', 'paused'].includes(game.phase);
+  $('jump-count').textContent = `跳过 ${game.jumpedCount} 个\n商城还需 ${15 - game.jumpedCount % 15}`;
   if ($('score').textContent !== String(game.score)) {
     $('score').textContent = String(game.score);
     $('progress').setAttribute('aria-valuenow', String(game.score));
@@ -163,23 +162,24 @@ function syncShop() {
     button.setAttribute('aria-pressed', String(item.id === selectedSkin));
     button.textContent = item.name;
     const label = document.createElement('span');
-    label.textContent = game.equippedSkin === item.id ? '已穿戴' : game.unlockedSkins.has(item.id) ? '已解锁' : `★ ${item.price} 积分`;
+    label.textContent = game.equippedSkin === item.id ? '已穿戴' : item.price === 0 ? '免费 · 直接穿戴' : game.unlockedSkins.has(item.id) ? '已解锁' : `★ ${item.price} 积分`;
     button.append(label);
     button.addEventListener('click', () => { selectedSkin = item.id; previewAngle = 0; $('skin-angle').value = 0; clearPurchase(); syncShop(); activateSkin(); });
     return button;
   }));
-  $('skin-name').textContent = `${skin.name} · ${skin.price} 积分`;
+  $('skin-name').textContent = `${skin.name}外套 · ${skin.price === 0 ? '免费' : `${skin.price} 积分`}`;
   $('skin-action').textContent = game.equippedSkin === skin.id ? '已穿戴' : game.unlockedSkins.has(skin.id) ? '穿戴皮肤' : '兑换解锁';
   $('skin-action').disabled = game.equippedSkin === skin.id;
   skinPreview ??= new SkinPreview($('skin-preview'), renderer);
   skinPreview.render(selectedSkin, previewAngle);
 }
 function clearPurchase() { $('purchase-confirm').hidden = true; $('shop-status').textContent = ''; }
-$('shop-button').addEventListener('click', () => {
+function openShop() {
   if (!game.shopAvailable) return;
   shopWasRunning = game.phase === 'running'; game.pause(); keys.clear(); pointers.clear();
   shopPage = 'home'; clearPurchase(); $('shop-dialog').showModal(); syncShop(); syncUI();
-});
+}
+$('shop-button').addEventListener('click', openShop);
 $('skins-entry').addEventListener('click', () => { shopPage = 'series'; syncShop(); });
 for (const button of document.querySelectorAll('[data-category]')) button.addEventListener('click', () => {
   selectedCategory = button.dataset.category;
@@ -207,7 +207,7 @@ $('cancel-purchase').addEventListener('click', clearPurchase);
 $('remove-skin').addEventListener('click', () => { game.equipSkin(null); saveProfile(); syncShop(); });
 for (const id of ['close-shop', 'shop-done']) $(id).addEventListener('click', () => $('shop-dialog').close());
 $('shop-dialog').addEventListener('close', () => {
-  game.shopAvailable = false; clearPurchase(); previewPointer = null;
+  game.shopAvailable = game.shops.length > 0; clearPurchase(); previewPointer = null;
   if (shopWasRunning && !document.hidden) game.resume();
   lastFrame = null; syncUI(); canvas.focus({ preventScroll: true });
 });
@@ -234,6 +234,9 @@ $('pause-button').addEventListener('click', togglePause);
 
 field.addEventListener('pointerdown', (event) => {
   if (event.target.closest('button') || !$('overlay').hidden || !event.isPrimary || game.phase !== 'running') return;
+  if (game.shopAvailable && renderer.isShopAt(event.clientX, event.clientY)) {
+    event.preventDefault(); openShop(); return;
+  }
   if (event.pointerType === 'mouse') {
     if (event.button !== 0 && event.button !== 2) return;
     event.preventDefault();
@@ -323,12 +326,17 @@ function frame(timestamp) {
     if (event.type === 'damage') showToast(game.hearts ? event.net ? '被渔网粘住啦！扣一颗爱心，稍等一下挣脱。' : '没关系，还有勇气继续跳！' : '小鸡累啦，歇一歇再出发。', 1.6);
     if (event.type === 'star-collected') saveProfile();
     if (event.type === 'heal') showToast('跳满 10 个障碍，回复 1/10 颗爱心！');
-    if (event.type === 'shop-spawn') showToast('跳满 15 个障碍，皮肤商城出现啦！点击「进入商城」。');
+    if (event.type === 'shop-spawn') showToast('跳满 15 个障碍，积分商城出现啦！点击路边的小房子。');
     if (event.type === 'net-warning') showToast('注意前方！深绿色渔网即将落下。', 1.5);
     if (event.type === 'net-release') showToast('挣脱啦！看准空隙再跳。', 1.3);
   }
   syncUI();
   renderer.render(game);
+  const shopTarget = game.shopAvailable && ['running', 'paused'].includes(game.phase) && !$('shop-dialog').open ? renderer.shopTarget() : null;
+  $('shop-button').hidden = !shopTarget;
+  if (shopTarget) Object.assign($('shop-button').style, {
+    left: `${shopTarget.left}px`, top: `${shopTarget.top}px`, width: `${shopTarget.width}px`, height: `${shopTarget.height}px`,
+  });
   if ($('shop-dialog').open && shopPage === 'catalog') skinPreview?.render(selectedSkin, previewAngle);
   if (toastUntil && timestamp >= toastUntil) { $('toast').hidden = true; toastUntil = 0; }
   requestAnimationFrame(frame);

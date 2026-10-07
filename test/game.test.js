@@ -437,7 +437,7 @@ test('stars never spawn on pipe rows and later pipes remove previously spawned s
   }
 });
 
-test('13 skins have the requested categories and original prices, and require confirmation before purchase', () => {
+test('13 skins keep their categories and paid purchases require confirmation', () => {
   assert.equal(SKINS.filter((skin) => skin.category === 'animal').length, 6);
   assert.equal(SKINS.filter((skin) => skin.category === 'fruit').length, 7);
   for (const [id, price] of [['pig', 100], ['banana', 50], ['dragonfruit', 10]]) assert.equal(SKINS.find((skin) => skin.id === id).price, price);
@@ -455,4 +455,20 @@ test('13 skins have the requested categories and original prices, and require co
   game.start(); assert.equal(game.points, 10); assert.equal(game.equippedSkin, 'banana');
   assert.equal(game.jumpedCount, 0); assert.equal(game.shopAvailable, false);
   assert.equal(game.equipSkin(null), true); assert.equal(game.equippedSkin, null);
+});
+
+test('apple and orange coats are free to equip with zero points and stay owned after restarting', () => {
+  const game = new Game();
+  const freeSkins = SKINS.filter((skin) => skin.price === 0);
+  assert.deepEqual(freeSkins.map((skin) => skin.id), ['apple', 'orange']);
+  assert.ok(freeSkins.every((skin) => skin.category === 'fruit'));
+  for (const skin of freeSkins) {
+    assert.equal(game.unlockSkin(skin.id), 'owned');
+    assert.equal(game.equipSkin(skin.id), true);
+    assert.equal(game.equippedSkin, skin.id);
+    assert.equal(game.points, 0);
+    game.start();
+    assert.equal(game.equippedSkin, skin.id);
+    assert.ok(game.unlockedSkins.has(skin.id));
+  }
 });

@@ -341,7 +341,7 @@ export class Renderer {
     const chick = new THREE.Group();
     const body = this.mesh(chick, new THREE.SphereGeometry(1, 32, 24), '#ffdc70', [0, .88, 0]);
     body.scale.set(.66, .67, .62);
-    this.wings = [-1, 1].map((side) => this.sphere(chick, '#f2c353', [side * .60, .86, .02], [.105, .24, .22]));
+    const wings = [-1, 1].map((side) => this.sphere(chick, '#f2c353', [side * .60, .86, .02], [.105, .24, .22]));
     // One continuous three-crested wave, rather than three separate sticks.
     const crest = new THREE.Shape();
     crest.moveTo(-.34, 0); crest.quadraticCurveTo(-.06, -.04, .29, 0);
@@ -359,7 +359,7 @@ export class Renderer {
       this.sphere(chick, '#fffaf0', [side * .235 + .012, 1.145, -.577], [.012, .015, .01]);
       this.sphere(chick, '#efa186', [side * .35, .95, -.51], [.065, .04, .028]);
     }
-    this.feet = [-1, 1].map((side) => {
+    const feet = [-1, 1].map((side) => {
       const foot = new THREE.Group(); foot.position.set(side * .24, .09, .09);
       this.rod(foot, [0, 0, 0], [0, .23, 0], .035, '#df9745');
       for (const tip of [[0, -.035, -.24], [-.15, -.035, -.15], [.15, -.035, -.15]]) {
@@ -368,89 +368,98 @@ export class Renderer {
       }
       chick.add(foot); return foot;
     });
+    chick.userData = { wings, feet };
     return chick;
   }
 
   makeSkin(id) {
-    const group = new THREE.Group();
-    if (id === 'pig') {
-      this.sphere(group, '#f4aeb7', [0, .82, 0], [.68, .65, .61]);
-      this.sphere(group, '#fa8ea1', [0, .88, -.60], [.30, .20, .11]);
-      for (const side of [-1, 1]) {
-        this.sphere(group, '#a65f77', [side * .11, .90, -.706], [.035, .055, .015]);
-        const ear = this.mesh(group, new THREE.ConeGeometry(.23, .45, 3), '#f4aeb7', [side * .42, 1.43, 0]);
-        ear.rotation.z = side * -.3;
-        this.sphere(group, '#f97e9c', [side * .45, 1.42, -.08], [.09, .13, .045]);
-        this.box(group, '#965a6e', [.22, .18, .26], [side * .30, .09, 0]);
-      }
-      const curl = new THREE.CatmullRomCurve3(Array.from({ length: 25 }, (_, i) => {
-        const a = i / 24 * Math.PI * 3;
-        return new THREE.Vector3(Math.cos(a) * .10, .78 + Math.sin(a) * .10, .59 + i / 24 * .25);
-      }));
-      this.mesh(group, new THREE.TubeGeometry(curl, 24, .035, 6, false), '#ec8da1');
-    } else if (id === 'banana') {
-      const curve = new THREE.CatmullRomCurve3([
-        new THREE.Vector3(-.40, .18, 0), new THREE.Vector3(.04, .48, 0),
-        new THREE.Vector3(.27, 1.02, 0), new THREE.Vector3(.12, 1.60, 0),
-      ]);
-      this.mesh(group, new THREE.TubeGeometry(curve, 24, .29, 10, false), '#ffe05c');
-      this.rod(group, [.12, 1.58, 0], [.08, 1.81, 0], .085, '#8d7040');
-      this.sphere(group, '#8d7040', [-.42, .17, 0], [.09, .08, .09]);
-      for (const side of [-1, 1]) {
-        this.rod(group, [side * .12, .62, -.16], [side * .48, .35, -.08], .10, '#fff08e');
-        this.box(group, '#c3973e', [.17, .12, .23], [side * .20, .07, 0]);
-      }
-    } else if (id === 'dragonfruit') {
-      this.sphere(group, '#ef5a98', [0, .84, 0], [.58, .74, .52]);
-      this.sphere(group, '#fff6dc', [0, .88, -.44], [.42, .53, .12]);
-      for (let i = 0; i < 18; i++) {
-        const a = i * 2.4, y = .40 + (i % 5) * .20;
-        this.sphere(group, '#554b53', [Math.sin(a) * .29, y, -.55], [.018, .027, .012]);
-      }
-      for (let i = 0; i < 12; i++) {
-        const a = i * Math.PI / 3, y = .45 + Math.floor(i / 6) * .67;
-        const leaf = this.mesh(group, new THREE.ConeGeometry(.13, .43, 3), '#8dc65b', [Math.cos(a) * .55, y, Math.sin(a) * .48]);
-        leaf.rotation.z = -Math.cos(a) * .9; leaf.rotation.x = Math.sin(a) * .9;
-      }
-      for (const side of [-1, 1]) this.box(group, '#8dc65b', [.19, .13, .25], [side * .22, .07, 0]);
-    } else if (SKINS.find((skin) => skin.id === id)?.category === 'animal') {
-      const color = { cat: '#e7b06c', dog: '#c1946e', rabbit: '#fff4ec', panda: '#f7f4e8', bear: '#9d7153' }[id];
-      this.sphere(group, color, [0, .79, 0], [.62, .65, .56]);
-      this.sphere(group, color, [0, 1.24, -.10], [.48, .43, .44]);
-      for (const side of [-1, 1]) {
-        if (id === 'cat') this.mesh(group, new THREE.ConeGeometry(.20, .38, 3), color, [side * .32, 1.65, -.10]);
-        else this.sphere(group, id === 'panda' ? '#424641' : color, [side * .34, id === 'rabbit' ? 1.85 : 1.57, -.03], id === 'rabbit' ? [.14, .50, .12] : id === 'dog' ? [.16, .32, .14] : [.19, .19, .13]);
-        this.sphere(group, id === 'panda' ? '#424641' : color, [side * .29, .12, -.1], [.19, .15, .26]);
-        if (id === 'panda') this.sphere(group, '#424641', [side * .19, 1.3, -.48], [.12, .14, .04]);
-        this.sphere(group, '#303832', [side * .18, 1.32, -.52], [.04, .055, .025]);
-      }
-      this.sphere(group, '#fff0d9', [0, 1.11, -.51], [.22, .15, .07]);
-      this.sphere(group, '#64504c', [0, 1.18, -.59], [.065, .045, .03]);
-      this.sphere(group, color, [0, .58, .58], id === 'rabbit' ? [.17, .17, .17] : [.10, .12, .35]);
-    } else {
-      const color = { apple: '#e96a62', orange: '#ffac47', watermelon: '#79b760', strawberry: '#ef7290', grape: '#ac88c8' }[id];
-      if (id === 'grape') {
-        for (let i = 0; i < 10; i++) {
-          const a = i * 2.4; this.sphere(group, color, [Math.sin(a) * .32, .42 + Math.floor(i / 3) * .28, Math.cos(a) * .30], [.28, .28, .28]);
-        }
-      } else this.sphere(group, color, [0, .85, 0], id === 'strawberry' ? [.53, .68, .5] : [.65, .66, .60]);
-      this.rod(group, [0, 1.42, 0], [.08, 1.68, 0], .045, '#7d6346');
-      this.sphere(group, '#80af58', [.17, 1.58, 0], [.24, .07, .12]).rotation.z = .4;
-      if (id === 'watermelon') {
-        for (let i = 0; i < 8; i++) {
-          const a = i * Math.PI / 4;
-          const curve = new THREE.CatmullRomCurve3([new THREE.Vector3(Math.sin(a) * .3, .3, Math.cos(a) * .3), new THREE.Vector3(Math.sin(a) * .655, .85, Math.cos(a) * .605), new THREE.Vector3(Math.sin(a) * .3, 1.4, Math.cos(a) * .3)]);
-          this.mesh(group, new THREE.TubeGeometry(curve, 12, .027, 5, false), '#376b42');
-        }
-      }
-      if (id === 'strawberry') for (let i = 0; i < 20; i++) {
-        const a = i * 2.4, y = .4 + (i % 5) * .18;
-        this.sphere(group, '#ffe493', [Math.sin(a) * .5, y, Math.cos(a) * .47], [.018, .035, .016]);
-      }
-      for (const side of [-1, 1]) this.box(group, '#80af58', [.19, .12, .25], [side * .22, .07, 0]);
+    // Every costume uses the original chick, with a fitted jacket and an open hood.
+    const chick = this.makeChicken();
+    const coat = new THREE.Group(); chick.add(coat);
+    const palette = {
+      pig: ['#ed9aaa', '#ffe2e3'], cat: ['#d7a16b', '#fff0d4'],
+      dog: ['#bd916d', '#f8e6cb'], rabbit: ['#eee6dc', '#f4c8d0'],
+      panda: ['#f3f0e5', '#424a47'], bear: ['#ac7c58', '#f3dbb7'],
+      banana: ['#f6d45a', '#fff2b5'], dragonfruit: ['#e96b9e', '#fff4e3'],
+      apple: ['#e77970', '#ffe7cf'], orange: ['#f2ab55', '#fff1ca'],
+      watermelon: ['#75ad76', '#edaca3'], strawberry: ['#e8869a', '#fff0d3'],
+      grape: ['#a48ac6', '#ede1fa'],
+    };
+    const [color, accent] = palette[id];
+    const shell = this.mesh(coat, new THREE.SphereGeometry(1, 40, 28, 0, Math.PI * 2, 1.5, Math.PI - 1.5), color, [0, .88, 0]);
+    shell.scale.set(.685, .695, .645);
+    const hood = this.mesh(coat, new THREE.SphereGeometry(1, 40, 24, -.6, Math.PI + 1.2, 0, 1.5), color, [0, .88, 0]);
+    hood.scale.copy(shell.scale);
+    const collar = this.mesh(coat, new THREE.TorusGeometry(1, .022, 8, 48), accent, [0, .93, 0]);
+    collar.rotation.x = Math.PI / 2; collar.scale.set(.685, .645, 1);
+    this.sphere(coat, accent, [0, .59, -.594], [.34, .27, .065]);
+    // Small lapels, a neat seam and wooden buttons make it read as clothing.
+    for (const side of [-1, 1]) {
+      const lapel = this.sphere(coat, accent, [side * .095, .84, -.642], [.085, .13, .022]);
+      lapel.rotation.z = side * .38;
+      const sleeve = this.sphere(chick.userData.wings[side === -1 ? 0 : 1], color, [0, .04, 0], [1.06, .68, 1.04]);
+      sleeve.castShadow = true;
     }
-    for (const side of [-1, 1]) this.sphere(group, '#414839', [side * .15, 1.07, id === 'pig' ? -.57 : id === 'banana' ? -.27 : -.60], [.035, .055, .025]);
-    return group;
+    this.rod(coat, [0, .77, -.66], [0, .42, -.543], .012, color);
+    for (const y of [.71, .57, .43]) {
+      const z = -.645 * Math.sqrt(1 - ((y - .88) / .695) ** 2) - .075;
+      this.sphere(coat, '#fff7e0', [0, y, z], [.025, .025, .015]);
+    }
+    const leaf = (x, y, z, size = 1) => {
+      const mesh = this.sphere(coat, '#80aa67', [x, y, z], [.17 * size, .035 * size, .085 * size]);
+      mesh.rotation.z = x < 0 ? -.35 : .35; return mesh;
+    };
+    const badge = new THREE.Group(); badge.position.set(-.25, .67, -.64); coat.add(badge);
+    if (SKINS.find((skin) => skin.id === id).category === 'fruit') {
+      // A compact fruit brooch and soft leaf trim keep the rounded silhouette.
+      if (id === 'banana') {
+        const curve = new THREE.CatmullRomCurve3([new THREE.Vector3(-.075, -.07, 0), new THREE.Vector3(.035, -.045, -.01), new THREE.Vector3(.07, .09, 0)]);
+        this.mesh(badge, new THREE.TubeGeometry(curve, 16, .037, 8, false), '#ffda55');
+        this.sphere(badge, '#977747', [.07, .10, 0], [.025, .025, .022]);
+      } else if (id === 'grape') {
+        for (const [x, y] of [[-.045, .035], [.045, .035], [0, -.035], [0, .09]]) this.sphere(badge, '#8262b0', [x, y, 0], [.05, .05, .025]);
+      } else {
+        this.sphere(badge, id === 'watermelon' ? '#e98d8a' : color, [0, 0, 0], [.09, .095, .027]);
+        this.sphere(badge, '#70965a', [.04, .095, 0], [.055, .02, .025]).rotation.z = .5;
+      }
+      leaf(-.19, 1.5, .07); leaf(.13, 1.52, .05, .8);
+      if (id === 'strawberry' || id === 'dragonfruit') {
+        for (let i = 0; i < 28; i++) {
+          const theta = 1.72 + Math.floor(i / 7) * .28, phi = i % 7 * Math.PI * 2 / 7;
+          const dot = this.sphere(coat, id === 'strawberry' ? '#ffe3a0' : '#795565',
+            [-.691 * Math.cos(phi) * Math.sin(theta), .88 + .702 * Math.cos(theta), .652 * Math.sin(phi) * Math.sin(theta)], [.016, .027, .012]);
+          dot.rotation.y = -phi;
+        }
+      }
+      if (id === 'watermelon') {
+        for (let i = 0; i < 9; i++) {
+          const phi = i * Math.PI * 2 / 9;
+          const curve = new THREE.CatmullRomCurve3(Array.from({ length: 15 }, (_, n) => {
+            const theta = 1.52 + n / 14 * 1.28;
+            return new THREE.Vector3(-.69 * Math.cos(phi) * Math.sin(theta), .88 + .7 * Math.cos(theta), .65 * Math.sin(phi) * Math.sin(theta));
+          }));
+          this.mesh(coat, new THREE.TubeGeometry(curve, 16, .015, 6, false), '#467b53');
+        }
+      }
+    } else {
+      // Animal motifs belong to the hood and chest patch; the chick keeps its face.
+      const earColor = id === 'panda' ? accent : color;
+      for (const side of [-1, 1]) {
+        const ear = this.sphere(coat, earColor, [side * .43, 1.48, .04], id === 'rabbit' ? [.095, .23, .085] : [.14, .14, .095]);
+        ear.rotation.z = side * -.3;
+        if (id !== 'panda') this.sphere(coat, accent, [side * .43, 1.49, -.045], id === 'rabbit' ? [.045, .16, .025] : [.075, .075, .025]);
+        this.sphere(badge, color, [side * .055, .09, 0], [.032, .038, .025]);
+      }
+      this.sphere(badge, color, [0, 0, 0], [.09, .075, .03]);
+      if (id === 'pig') {
+        this.sphere(badge, '#d87994', [0, 0, -.03], [.065, .043, .016]);
+        for (const x of [-.025, .025]) this.sphere(badge, '#96576b', [x, 0, -.047], [.009, .014, .006]);
+      } else {
+        for (const x of [-.055, 0, .055]) this.sphere(badge, accent, [x, .07, -.032], [.022, .023, .01]);
+        this.sphere(badge, accent, [0, -.01, -.034], [.037, .032, .01]);
+      }
+    }
+    return chick;
   }
 
   makeStar() {
@@ -479,9 +488,10 @@ export class Renderer {
     this.box(group, '#795f48', [.65, .95, .04], [0, .48, .62]);
     const canvas = document.createElement('canvas'); canvas.width = 256; canvas.height = 64;
     const ctx = canvas.getContext('2d'); ctx.fillStyle = '#fff6da'; ctx.fillRect(0, 0, 256, 64);
-    ctx.fillStyle = '#76523d'; ctx.font = 'bold 30px sans-serif'; ctx.textAlign = 'center'; ctx.fillText('★ 皮肤商城', 128, 43);
+    ctx.fillStyle = '#76523d'; ctx.font = 'bold 30px sans-serif'; ctx.textAlign = 'center'; ctx.fillText('★ 点击进入商城', 128, 43);
     const label = new THREE.Sprite(new THREE.SpriteMaterial({ map: new THREE.CanvasTexture(canvas) }));
     label.position.y = 2.5; label.scale.set(2.7, .67, 1); group.add(label);
+    group.scale.setScalar(1.35);
     return group;
   }
 
@@ -503,6 +513,41 @@ export class Renderer {
     for (const [key, mesh] of this.rewardMeshes) {
       if (!active.has(key)) { this.scene.remove(mesh); this.rewardMeshes.delete(key); }
     }
+  }
+
+  isShopAt(clientX, clientY) {
+    const bounds = this.canvas.getBoundingClientRect();
+    const pointer = new THREE.Vector2((clientX - bounds.left) / bounds.width * 2 - 1, 1 - (clientY - bounds.top) / bounds.height * 2);
+    const ray = new THREE.Raycaster(); ray.setFromCamera(pointer, this.camera);
+    const shops = [...this.rewardMeshes].filter(([key]) => key.includes('/shop/')).map(([, mesh]) => mesh);
+    return ray.intersectObjects(shops, true).length > 0;
+  }
+
+  shopTarget() {
+    const { width, height } = this.canvas.getBoundingClientRect();
+    // The keyboard/touch target follows the visible house, never the HUD counters.
+    const shops = [...this.rewardMeshes].filter(([key]) => key.includes('/shop/')).map(([, mesh]) => mesh).sort((a, b) => b.position.z - a.position.z);
+    for (const shop of shops) {
+      const bounds = new THREE.Box3().setFromObject(shop);
+      const corners = [];
+      for (const x of [bounds.min.x, bounds.max.x]) for (const y of [bounds.min.y, bounds.max.y]) for (const z of [bounds.min.z, bounds.max.z]) {
+        corners.push(new THREE.Vector3(x, y, z).project(this.camera));
+      }
+      if (corners.every((corner) => corner.z < -1 || corner.z > 1)) continue;
+      const left = (Math.min(...corners.map((v) => v.x)) + 1) * width / 2;
+      const right = (Math.max(...corners.map((v) => v.x)) + 1) * width / 2;
+      const top = (1 - Math.max(...corners.map((v) => v.y))) * height / 2;
+      const bottom = (1 - Math.min(...corners.map((v) => v.y))) * height / 2;
+      if (right < 0 || left > width || bottom < 0 || top > height) continue;
+      const targetWidth = Math.min(width, Math.max(64, right - left));
+      const targetHeight = Math.min(height, Math.max(64, bottom - top));
+      return {
+        left: Math.max(0, Math.min(width - targetWidth, (left + right - targetWidth) / 2)),
+        top: Math.max(0, Math.min(height - targetHeight, (top + bottom - targetHeight) / 2)),
+        width: targetWidth, height: targetHeight,
+      };
+    }
+    return null;
   }
 
   makeNet(width, height, fresh) {
@@ -713,8 +758,8 @@ export class Renderer {
     this.chicken.rotation.y = -(game.player.lane - game.player.lanePosition) * .12;
     this.chicken.scale.set(1 + game.player.squash * .12, 1 - game.player.squash * .12, 1);
     this.chicken.visible = !game.invincible || stuck || Math.floor(game.time * 12) % 2 === 0;
-    this.feet.forEach((foot, i) => { foot.rotation.x = stride * (i ? 1 : -1) * .75; });
-    this.wings.forEach((wing, i) => { wing.rotation.z = (i ? 1 : -1) * (game.grounded ? .15 : .7) + stride * .08; });
+    (this.skinModels.get(game.equippedSkin) ?? this.chicken).userData.feet.forEach((foot, i) => { foot.rotation.x = stride * (i ? 1 : -1) * .75; });
+    (this.skinModels.get(game.equippedSkin) ?? this.chicken).userData.wings.forEach((wing, i) => { wing.rotation.z = (i ? 1 : -1) * (game.grounded ? .15 : .7) + stride * .08; });
     this.bubble.visible = ocean; this.caughtMesh.visible = stuck;
     this.particles = this.particles.filter((particle) => {
       const age = game.time - particle.birth;

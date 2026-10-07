@@ -18,8 +18,8 @@ export const SKINS = Object.freeze([
   { id: 'bear', name: '小熊', price: 60, category: 'animal' },
   { id: 'banana', name: '香蕉', price: 50, category: 'fruit' },
   { id: 'dragonfruit', name: '火龙果', price: 10, category: 'fruit' },
-  { id: 'apple', name: '苹果', price: 20, category: 'fruit' },
-  { id: 'orange', name: '橙子', price: 30, category: 'fruit' },
+  { id: 'apple', name: '苹果', price: 0, category: 'fruit' },
+  { id: 'orange', name: '橙子', price: 0, category: 'fruit' },
   { id: 'watermelon', name: '西瓜', price: 60, category: 'fruit' },
   { id: 'strawberry', name: '草莓', price: 40, category: 'fruit' },
   { id: 'grape', name: '葡萄', price: 70, category: 'fruit' },
@@ -35,7 +35,7 @@ export class Game {
   constructor(random = Math.random) {
     this.random = random;
     this.points = 0;
-    this.unlockedSkins = new Set();
+    this.unlockedSkins = new Set(SKINS.filter((skin) => skin.price === 0).map((skin) => skin.id));
     this.equippedSkin = null;
     this.reset();
   }
