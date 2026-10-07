@@ -108,6 +108,14 @@ dialog h2 { font-size: 25px; margin: 18px 0; }
 .reward-panel > span:first-child { font-size: 24px; color: #e1ae35; }
 #points { display: block; font: 800 22px/1.15 "Trebuchet MS", system-ui, sans-serif; font-variant-numeric: tabular-nums; overflow-wrap: anywhere; }
 #jump-count { display: block; margin-top: 8px; white-space: pre-line; font-size: 10px; line-height: 1.65; color: #fff; text-shadow: 0 1px 3px #476b51; }
+.hud-shop-button { display: inline-flex; align-items: center; gap: 6px; margin-top: 8px; padding: 6px 12px; border: 1.5px solid #ffe699; border-radius: 12px; background: #fffdf2f0; color: #795d2c; font-size: 11px; font-weight: 700; box-shadow: 0 3px 0 #baa06450, 0 4px 12px #00000015; pointer-events: auto; cursor: pointer; }
+.hud-shop-button svg { width: 15px; height: 15px; fill: none; stroke: #c89528; stroke-width: 2px; stroke-linecap: round; stroke-linejoin: round; }
+.hud-shop-button:hover { background: #fff3cb; transform: translateY(-1px); box-shadow: 0 4px 0 #baa06460, 0 6px 14px #00000020; }
+.hud-shop-button:active { transform: translateY(2px); box-shadow: 0 1px 0 #baa06460; }
+.card-actions { display: flex; flex-direction: column; gap: 8px; align-items: center; width: 100%; }
+.card-shop-button { display: inline-flex; align-items: center; justify-content: center; gap: 8px; width: 100%; padding: 11px 16px; border: 1.5px solid #e2c77d; border-radius: 12px; background: #fff9e6; color: #705828; font-size: 12px; font-weight: 700; box-shadow: 0 3px 0 #d1b15855; cursor: pointer; margin: 0 !important; }
+.card-shop-button svg { width: 16px; height: 16px; fill: none; stroke: #c28c22; stroke-width: 2px; stroke-linecap: round; stroke-linejoin: round; }
+.card-shop-button:hover { background: #fef0c7; }
 #shop-button { position: absolute; z-index: 2; padding: 0; border: 2px solid transparent; border-radius: 14px; background: transparent; cursor: pointer; touch-action: manipulation; transition: none; }
 #shop-button:hover, #shop-button:focus-visible { border-color: #fff4b8; background: #fff3b31c; box-shadow: 0 0 18px #fff1b955; }
 #shop-button:active { transform: none; }

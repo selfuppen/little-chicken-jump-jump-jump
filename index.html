@@ -41,6 +41,10 @@
                   <svg viewBox="0 0 32 30" aria-hidden="true"><path d="M16 27 C13 24 2 17 2 9 A7 7 0 0 1 16 5 A7 7 0 0 1 30 9 C30 17 19 24 16 27Z" /></svg>
                 </div>
                 <span id="jump-count">跳过 0 个</span>
+                <button class="hud-shop-button" id="hud-shop-button" hidden aria-label="进入积分商城">
+                  <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z" /><polyline points="9 22 9 12 15 12 15 22" /></svg>
+                  <span>积分商城</span>
+                </button>
               </div>
               <div class="hud-controls">
                 <button class="pause-button" id="pause-button" hidden aria-label="暂停游戏" aria-keyshortcuts="p Escape" title="暂停 / 继续（P 或 Esc）"><svg viewBox="0 0 20 20" aria-hidden="true"><path d="M6 4v12M14 4v12" /></svg><span>暂停</span></button>
@@ -61,8 +65,11 @@
                 <img class="card-chick" src="./favicon.svg" alt="" />
                 <h2 id="card-title">准备好向前跑了吗？</h2>
                 <p id="card-copy">换道、跳跃，躲开路上的小障碍。<br />发现管道，再去海里转一圈。</p>
-                <button class="primary-button" id="primary-button"><span id="primary-label">开始冒险</span><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M5 12h14M13 6l6 6-6 6" /></svg></button>
-                <button class="secondary-button" id="restart-button" hidden>重新开始</button>
+                <div class="card-actions">
+                  <button class="primary-button" id="primary-button"><span id="primary-label">开始冒险</span><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M5 12h14M13 6l6 6-6 6" /></svg></button>
+                  <button class="secondary-button card-shop-button" id="overlay-shop-button" hidden><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z" /><polyline points="9 22 9 12 15 12 15 22" /></svg><span>积分商城</span></button>
+                  <button class="secondary-button" id="restart-button" hidden>重新开始</button>
+                </div>
                 <span class="card-hint" id="card-hint">电脑：← → 换道 · ↑ 跳跃<br />手机：轻点跳跃 · 左右滑动换道</span>
               </div>
             </div>

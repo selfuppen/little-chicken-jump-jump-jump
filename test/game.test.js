@@ -59,7 +59,7 @@ test('grass randomly spawns bones, dry branches, apple cores, and discarded cans
   assert.deepEqual(kinds, ['bone', 'fishbone', 'branch', 'applecore', 'can']);
 });
 
-test('ocean jumps land sooner at the same height and restore grass timing on return', () => {
+test('ocean jumps have the exact same airtime and height as grass jumps', () => {
   const grass = running(); const ocean = underwater();
   grass.jump(); ocean.jump();
   const measure = (game) => {
@@ -67,11 +67,11 @@ test('ocean jumps land sooner at the same height and restore grass timing on ret
     while (!game.grounded && airtime < 2) {
       game.update(1 / 120); airtime += 1 / 120; peak = Math.min(peak, game.player.y);
     }
-    return { airtime, height: RULES.ground - peak };
+    return { airtime: Math.round(airtime * 1000) / 1000, height: Math.round((RULES.ground - peak) * 10) / 10 };
   };
-  const normal = measure(grass); const quicker = measure(ocean);
-  assert.ok(quicker.airtime < normal.airtime * .8);
-  assert.ok(Math.abs(quicker.height - normal.height) < 2);
+  const normal = measure(grass); const oceanJump = measure(ocean);
+  assert.equal(oceanJump.airtime, normal.airtime);
+  assert.equal(oceanJump.height, normal.height);
   assert.equal(ocean.world, 'ocean'); assert.equal(ocean.score, 0);
   ocean.returnToGrass(); ocean.jump();
   assert.deepEqual(measure(ocean), normal);
@@ -472,3 +472,62 @@ test('apple and orange coats are free to equip with zero points and stay owned a
     assert.ok(game.unlockedSkins.has(skin.id));
   }
 });
+
+test('shop unlocks after 15 jumped obstacles and sets shopUnlocked flag', () => {
+  const game = running();
+  assert.equal(game.shopUnlocked, false);
+  for (let i = 0; i < 14; i++) game.recordJumpedObstacle();
+  assert.equal(game.shopUnlocked, false);
+  game.recordJumpedObstacle();
+  assert.equal(game.shopUnlocked, true);
+  assert.equal(game.shops.length, 1);
+});
+
+test('ground stars can be collected on ground without jumping, while air stars require jumping', () => {
+  const game = running();
+  game.starSpawnIn = 100;
+  // Ground star
+  game.stars.push({ id: 201, x: RULES.chickenX + 5, lane: 1, height: 12, starType: 'ground' });
+  // Air star
+  game.stars.push({ id: 202, x: RULES.chickenX + 5, lane: 2, height: 85, starType: 'air' });
+  
+  advance(game, 0.02);
+  // Chicken was on ground in lane 1, collected ground star
+  assert.equal(game.points, 1);
+  assert.equal(game.stars.length, 1);
+  assert.equal(game.stars[0].id, 202);
+  
+  // Move to lane 2 while still grounded
+  game.moveLane(1);
+  advance(game, RULES.laneSwitchTime + 0.05);
+  // Ground chicken cannot eat air star
+  game.stars = [{ id: 203, x: RULES.chickenX + 5, lane: 2, height: 85, starType: 'air' }];
+  advance(game, 0.02);
+  assert.equal(game.points, 1);
+  assert.equal(game.stars.length, 1);
+  
+  // Place air star so it arrives when chicken is near jump apex (~0.38s into jump)
+  game.jump();
+  game.stars = [{ id: 204, x: RULES.chickenX + game.speed * 0.35, lane: 2, height: 85, starType: 'air' }];
+  advance(game, 0.4);
+  assert.equal(game.points, 2);
+  assert.equal(game.stars.length, 0);
+});
+
+test('stars never spawn in the same lane where an obstacle is near spawn position, and obstacle spawn clears stars in lane', () => {
+  const game = running();
+  // Place obstacles in lane 0 and 1 near spawnX
+  game.obstacles.push(game.createObstacle('bone', RULES.spawnX, 0));
+  game.obstacles.push(game.createObstacle('branch', RULES.spawnX, 1));
+  game.spawnStar();
+  // Star must only spawn in lane 2
+  assert.equal(game.stars.length, 1);
+  assert.equal(game.stars[0].lane, 2);
+  
+  // If an obstacle subsequently spawns in lane 2 at spawnX, star in lane 2 is cleared to avoid overlap
+  game.random = () => 0.5; // regular obstacle
+  game.regularCount = 0;
+  game.spawn();
+  assert.ok(game.stars.every((s) => !game.obstacles.some((o) => o.lane === s.lane && Math.abs(o.x - s.x) < 180)));
+});
+

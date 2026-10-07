@@ -1,11 +1,13 @@
 import { Game, RULES, SKINS } from './game.js';
 import { Renderer, SkinPreview } from './renderer.js';
+import { SoundSystem } from './audio.js';
 
 const $ = (id) => document.getElementById(id);
 const field = $('game-field');
 const canvas = $('game-canvas');
 const game = new Game();
 const renderer = new Renderer(canvas);
+const sounds = new SoundSystem();
 let skinPreview = null;
 let shopPage = 'home';
 let selectedCategory = 'fruit';
@@ -50,7 +52,8 @@ function showToast(message, seconds = 2.4) {
 
 function syncUI() {
   $('points').textContent = game.points;
-  $('jump-count').textContent = `跳过 ${game.jumpedCount} 个\n商城还需 ${15 - game.jumpedCount % 15}`;
+  $('jump-count').textContent = `跳过 ${game.jumpedCount} 个\n${game.shopUnlocked ? '已开启积分商城' : `商城还需 ${15 - (game.jumpedCount % 15)}`}`;
+  $('hud-shop-button').hidden = !game.shopUnlocked;
   if ($('score').textContent !== String(game.score)) {
     $('score').textContent = String(game.score);
     $('progress').setAttribute('aria-valuenow', String(game.score));
@@ -81,6 +84,7 @@ function syncUI() {
     $('pause-button').setAttribute('aria-label', game.phase === 'paused' ? '继续游戏' : '暂停游戏');
     $('pause-button').querySelector('span').textContent = game.phase === 'paused' ? '继续' : '暂停';
     $('restart-button').hidden = game.phase !== 'paused';
+    $('overlay-shop-button').hidden = !['gameover', 'won'].includes(game.phase);
   }
 
   const retryWaiting = game.phase === 'gameover' && performance.now() < retryReadyAt;
@@ -96,6 +100,7 @@ function syncUI() {
       $('card-copy').innerHTML = game.phase === 'gameover' ? `这次成功越过了 <strong>${game.score}</strong> 个障碍。<br />再来一次，小鸡会跳得更远！` : card.copy;
       $('primary-label').textContent = card.button;
       $('card-hint').textContent = card.hint;
+      $('overlay-shop-button').hidden = !['gameover', 'won'].includes(game.phase);
       $('overlay-card').style.animation = 'none';
       void $('overlay-card').offsetWidth;
       $('overlay-card').style.animation = '';
@@ -122,6 +127,7 @@ function syncUI() {
 
 function start() {
   if (game.phase === 'gameover' && (retryReadyAt === null || performance.now() < retryReadyAt)) return;
+  sounds.ensureContext();
   $('toast').hidden = true;
   toastUntil = 0;
   field.classList.remove('arriving');
@@ -134,12 +140,16 @@ function start() {
 }
 
 function action() {
+  sounds.ensureContext();
   if ($('help-dialog').open || $('shop-dialog').open) return;
   if (game.phase === 'ready') start();
-  game.jump();
+  if (game.jump()) {
+    sounds.playJump();
+  }
 }
 
 function togglePause() {
+  sounds.ensureContext();
   if ($('help-dialog').open || $('shop-dialog').open) return;
   if (game.phase === 'running') game.pause();
   else if (game.phase === 'paused') { game.resume(); canvas.focus({ preventScroll: true }); }
@@ -175,11 +185,20 @@ function syncShop() {
 }
 function clearPurchase() { $('purchase-confirm').hidden = true; $('shop-status').textContent = ''; }
 function openShop() {
-  if (!game.shopAvailable) return;
-  shopWasRunning = game.phase === 'running'; game.pause(); keys.clear(); pointers.clear();
-  shopPage = 'home'; clearPurchase(); $('shop-dialog').showModal(); syncShop(); syncUI();
+  sounds.ensureContext();
+  shopWasRunning = game.phase === 'running';
+  game.pause();
+  keys.clear();
+  pointers.clear();
+  shopPage = 'home';
+  clearPurchase();
+  $('shop-dialog').showModal();
+  syncShop();
+  syncUI();
 }
 $('shop-button').addEventListener('click', openShop);
+$('hud-shop-button').addEventListener('click', openShop);
+$('overlay-shop-button').addEventListener('click', openShop);
 $('skins-entry').addEventListener('click', () => { shopPage = 'series'; syncShop(); });
 for (const button of document.querySelectorAll('[data-category]')) button.addEventListener('click', () => {
   selectedCategory = button.dataset.category;
@@ -208,7 +227,7 @@ $('remove-skin').addEventListener('click', () => { game.equipSkin(null); savePro
 for (const id of ['close-shop', 'shop-done']) $(id).addEventListener('click', () => $('shop-dialog').close());
 $('shop-dialog').addEventListener('close', () => {
   game.shopAvailable = game.shops.length > 0; clearPurchase(); previewPointer = null;
-  if (shopWasRunning && !document.hidden) game.resume();
+  if (shopWasRunning && !document.hidden && game.phase === 'running') game.resume();
   lastFrame = null; syncUI(); canvas.focus({ preventScroll: true });
 });
 $('skin-angle').addEventListener('input', () => { previewAngle = Number($('skin-angle').value) * Math.PI / 180; });
@@ -224,6 +243,7 @@ $('skin-preview').addEventListener('pointermove', (event) => {
 for (const type of ['pointerup', 'pointercancel']) $('skin-preview').addEventListener(type, () => { previewPointer = null; });
 
 $('primary-button').addEventListener('click', () => {
+  sounds.ensureContext();
   if ($('overlay').hidden || $('primary-button').disabled) return;
   if (game.phase === 'paused') { game.resume(); lastFrame = null; syncUI(); canvas.focus({ preventScroll: true }); }
   else start();
@@ -233,6 +253,7 @@ $('jump-button').addEventListener('click', action);
 $('pause-button').addEventListener('click', togglePause);
 
 field.addEventListener('pointerdown', (event) => {
+  sounds.ensureContext();
   if (event.target.closest('button') || !$('overlay').hidden || !event.isPrimary || game.phase !== 'running') return;
   if (game.shopAvailable && renderer.isShopAt(event.clientX, event.clientY)) {
     event.preventDefault(); openShop(); return;
@@ -262,6 +283,7 @@ window.addEventListener('pointerup', (event) => {
 window.addEventListener('pointercancel', (event) => pointers.delete(event.pointerId));
 
 window.addEventListener('keydown', (event) => {
+  sounds.ensureContext();
   if ($('help-dialog').open || $('shop-dialog').open) return;
   if (event.code === 'ArrowLeft' || event.code === 'ArrowRight') {
     if (event.target instanceof Element && event.target.closest('button, a, input, textarea, select, [contenteditable]')) return;
@@ -306,6 +328,7 @@ document.addEventListener('visibilitychange', () => { if (document.hidden) pause
 window.addEventListener('blur', pauseForVisibility);
 
 $('help-button').addEventListener('click', () => {
+  sounds.ensureContext();
   if (game.pause()) { lastFrame = null; syncUI(); }
   $('help-dialog').showModal();
 });
@@ -323,10 +346,14 @@ function frame(timestamp) {
   game.update(dt);
   for (const event of game.drainEvents()) {
     renderer.effect(event);
+    if (event.type === 'jump') sounds.playJump();
     if (event.type === 'damage') showToast(game.hearts ? event.net ? '被渔网粘住啦！扣一颗爱心，稍等一下挣脱。' : '没关系，还有勇气继续跳！' : '小鸡累啦，歇一歇再出发。', 1.6);
-    if (event.type === 'star-collected') saveProfile();
+    if (event.type === 'star-collected') {
+      saveProfile();
+      sounds.playStar();
+    }
     if (event.type === 'heal') showToast('跳满 10 个障碍，回复 1/10 颗爱心！');
-    if (event.type === 'shop-spawn') showToast('跳满 15 个障碍，积分商城出现啦！点击路边的小房子。');
+    if (event.type === 'shop-spawn') showToast('跳满 15 个障碍，积分商城出现啦！点击路边小房子或左上角商城。');
     if (event.type === 'net-warning') showToast('注意前方！深绿色渔网即将落下。', 1.5);
     if (event.type === 'net-release') showToast('挣脱啦！看准空隙再跳。', 1.3);
   }

@@ -1,6 +1,6 @@
 export const RULES = Object.freeze({
   width: 960, height: 480, ground: 382, chickenX: 186,
-  gravity: 1850, jumpVelocity: -780, oceanJumpSpeed: 1.35,
+  gravity: 1850, jumpVelocity: -780, oceanJumpSpeed: 1,
   baseSpeed: 260, speedPerPoint: 0.8, maxSpeed: 500,
   goal: 1000, invincibility: 1.2, returnSafety: 1.5,
   netStickTime: 0.7, netFallDuration: 0.42, netWarningMin: 0.95,
@@ -46,6 +46,7 @@ export class Game {
     this.score = 0;
     this.jumpedCount = 0;
     this.shopAvailable = false;
+    this.shopUnlocked = false;
     this.stars = [];
     this.shops = [];
     this.starSpawnIn = 1;
@@ -66,7 +67,7 @@ export class Game {
   }
 
   get speed() { return speedForScore(this.score); }
-  get jumpSpeedFactor() { return this.world === 'ocean' ? RULES.oceanJumpSpeed : 1; }
+  get jumpSpeedFactor() { return 1; }
   get grounded() { return this.player.y >= RULES.ground && this.player.vy === 0; }
 
   start() { this.reset(); this.phase = 'running'; this.emit('start'); }
@@ -117,17 +118,28 @@ export class Game {
     }
     if (this.jumpedCount % 15 === 0) {
       this.shopAvailable = true;
+      this.shopUnlocked = true;
       this.shops.push({ id: this.nextId++, x: RULES.spawnX });
       this.emit('shop-spawn');
     }
   }
 
   spawnStar() {
-    const lane = Math.floor(this.random() * RULES.lanes);
     const x = RULES.spawnX;
-    // Reserve the whole pipe row, even when it lies in another lane.
-    if (this.obstacles.some((o) => o.kind === 'pipe' && Math.abs(o.x - x) < 160)) return;
-    this.stars.push({ id: this.nextId++, x, lane, height: 25 + this.random() * 65 });
+    // Never spawn stars on or near pipe rows
+    if (this.obstacles.some((o) => o.kind === 'pipe' && Math.abs(o.x - x) < 180)) return;
+    // Choose lanes that do not have obstacles or existing stars in the spawn window
+    const availableLanes = [0, 1, 2].filter((lane) =>
+      !this.obstacles.some((o) => o.lane === lane && Math.abs(o.x - x) < 180) &&
+      !this.stars.some((s) => s.lane === lane && Math.abs(s.x - x) < 160)
+    );
+    if (availableLanes.length === 0) return;
+
+    const lane = availableLanes[Math.floor(this.random() * availableLanes.length)];
+    // Clearly defined position: ground star (height 12, eat by running) vs air star (height 85, must jump to eat)
+    const isAir = this.random() < 0.5;
+    const height = isAir ? 85 : 12;
+    this.stars.push({ id: this.nextId++, x, lane, height, starType: isAir ? 'air' : 'ground' });
   }
 
   updateRewards(dt, motion) {
@@ -136,12 +148,18 @@ export class Game {
       this.spawnStar();
       this.starSpawnIn = 1.2 + this.random() * 1.8;
     }
+    const chickenElevation = RULES.ground - this.player.y;
     for (const star of this.stars) {
       star.x -= motion;
       const height = star.height + Math.sin(this.time * 2 + star.id) * 7;
+      const heightMatches = star.starType === 'air'
+        ? (chickenElevation >= 40)
+        : star.starType === 'ground'
+        ? (chickenElevation <= 35)
+        : (Math.abs(chickenElevation + 24 - height) < 30);
       if (Math.abs(star.x - RULES.chickenX) < 28 &&
           Math.abs(this.player.lanePosition - star.lane) < .42 &&
-          Math.abs(RULES.ground - this.player.y + 24 - height) < 30) {
+          heightMatches) {
         star.collected = true;
         this.points++;
         this.emit('star-collected');
@@ -199,9 +217,11 @@ export class Game {
         this.regularCount++;
       }
       if (kind === 'fallingnet') warningTime = Math.max(warningTime, obstacle.warningDuration + RULES.netFallDuration);
+      // Remove any existing stars in this lane at spawn position so obstacles and stars never overlap
+      this.stars = this.stars.filter((star) => !(star.lane === lane && Math.abs(star.x - RULES.spawnX) < 180));
     }
     if (isPipe) {
-      this.stars = this.stars.filter((star) => Math.abs(star.x - RULES.spawnX) >= 160);
+      this.stars = this.stars.filter((star) => Math.abs(star.x - RULES.spawnX) >= 180);
       this.regularCount = 0;
       this.pipeAfter = this.randomPipeInterval();
       this.spawnIn += .35;

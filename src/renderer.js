@@ -162,13 +162,29 @@ export class Renderer {
       }
     } else {
       this.fish = [];
-      for (let i = 0; i < 12; i++) {
-        const fish = new THREE.Group(); fish.position.set((i % 2 ? -1 : 1) * (5 + i % 3), 2 + i % 4, -8 - i * 4);
-        const color = ['#efcc83', '#e7a7b4', '#b2d4b4'][i % 3];
+      for (let i = 0; i < 14; i++) {
+        const fish = new THREE.Group();
+        const side = i % 2 ? 1 : -1;
+        const color = ['#efcc83', '#e7a7b4', '#b2d4b4', '#f6b88b', '#8ec7c9'][i % 5];
         this.sphere(fish, color, [0, 0, 0], [.38, .19, .14]);
         this.mesh(fish, new THREE.ConeGeometry(.21, .32, 3), color, [-.42, 0, 0]).rotation.z = -Math.PI / 2;
         this.sphere(fish, '#415f57', [.23, .055, .115], [.027, .027, .027]);
-        fish.userData.baseX = fish.position.x;
+        this.sphere(fish, '#415f57', [.23, .055, -.115], [.027, .027, .027]);
+        const fin = this.mesh(fish, new THREE.ConeGeometry(.08, .20, 3), color, [-.06, .20, 0]);
+        fin.rotation.z = 0.4;
+        fish.userData = {
+          side,
+          baseX: side * (5.6 + (i * 1.3) % 3.2),
+          baseY: 1.2 + (i % 4) * 0.7,
+          baseZ: -4 - i * 7.5,
+          speedZ: (i % 2 === 0 ? 1 : -1) * (1.1 + (i % 3) * 0.4),
+          speedX: 0.5 + (i % 3) * 0.3,
+          speedY: 0.4 + (i % 2) * 0.3,
+          scale: 0.8 + (i % 3) * 0.2,
+          phase: i * 1.5,
+        };
+        fish.scale.setScalar(fish.userData.scale);
+        fish.traverse((mesh) => { if (mesh.isMesh) mesh.castShadow = false; });
         group.add(fish); this.fish.push(fish);
       }
       this.bubbles = [];
@@ -300,20 +316,31 @@ export class Renderer {
     halo.scale.set(9, 9, 1); sun.add(halo); group.add(sun);
 
     this.butterflies = [];
-    for (let i = 0; i < 6; i++) {
+    for (let i = 0; i < 8; i++) {
       const butterfly = new THREE.Group();
-      const color = ['#edbf73', '#d3b1d6', '#e7a59c'][i % 3];
-      const wings = [-1, 1].map((side) => {
+      const side = i % 2 ? 1 : -1;
+      const color = ['#edbf73', '#d3b1d6', '#e7a59c', '#98cde3', '#f7de7b'][i % 5];
+      const wings = [-1, 1].map((wSide) => {
         const wing = new THREE.Group();
-        this.sphere(wing, color, [side * .19, .10, 0], [.20, .24, .035]);
-        this.sphere(wing, color, [side * .15, -.15, 0], [.15, .15, .03]);
-        this.sphere(wing, '#fff1cf', [side * .22, .13, .035], [.07, .09, .013]);
+        this.sphere(wing, color, [wSide * .19, .10, 0], [.20, .24, .035]);
+        this.sphere(wing, color, [wSide * .15, -.15, 0], [.15, .15, .03]);
+        this.sphere(wing, '#fff1cf', [wSide * .22, .13, .035], [.07, .09, .013]);
         butterfly.add(wing); return wing;
       });
       this.sphere(butterfly, '#746f51', [0, 0, 0], [.028, .20, .026]);
-      for (const side of [-1, 1]) this.rod(butterfly, [0, .18, 0], [side * .07, .29, 0], .008, '#746f51');
-      butterfly.position.set((i % 2 ? 1 : -1) * (4.1 + i % 3 * .6), 1 + i % 2 * .3, -4 - i * 5.6);
-      butterfly.userData = { wings, origin: butterfly.position.clone() };
+      for (const wSide of [-1, 1]) this.rod(butterfly, [0, .18, 0], [wSide * .07, .29, 0], .008, '#746f51');
+      butterfly.userData = {
+        side,
+        baseX: side * (5.5 + (i * 1.1) % 3.0),
+        baseY: 1.1 + (i % 3) * 0.6,
+        baseZ: -3 - i * 10,
+        flightSpeedZ: (i % 2 === 0 ? 0.7 : -0.5) * (1 + (i % 3) * 0.3),
+        flightSpeedX: 0.6 + (i % 3) * 0.3,
+        wings,
+        scale: 0.85 + (i % 3) * 0.15,
+        phase: i * 1.8,
+      };
+      butterfly.scale.setScalar(butterfly.userData.scale);
       butterfly.traverse((mesh) => { if (mesh.isMesh) mesh.castShadow = false; });
       group.add(butterfly); this.butterflies.push(butterfly);
     }
@@ -499,15 +526,26 @@ export class Renderer {
     const active = new Set();
     for (const [kind, rewards] of [['star', game.stars], ['shop', game.shops]]) {
       for (const reward of rewards) {
+        const isAir = reward.height >= 50;
         const key = `${game.world}/${kind}/${reward.id}`; active.add(key);
         let mesh = this.rewardMeshes.get(key);
         if (!mesh) {
           if (!this.templates.has(kind)) this.templates.set(kind, kind === 'star' ? this.makeStar() : this.makeShop());
-          mesh = this.templates.get(kind).clone(true); this.scene.add(mesh); this.rewardMeshes.set(key, mesh);
+          mesh = (kind === 'star' ? this.templates.get('star') : this.makeShop()).clone(true);
+          this.scene.add(mesh); this.rewardMeshes.set(key, mesh);
         }
-        mesh.position.set(kind === 'star' ? laneX(reward.lane) : 4.9,
-          kind === 'star' ? (reward.height + Math.sin(game.time * 2 + reward.id) * 7) * RULES.worldScale : 0, depth(reward.x));
-        if (kind === 'star') { mesh.children[0].rotation.y = game.time * .65; mesh.children[0].rotation.z = Math.sin(game.time * .4) * .1; }
+        // Clearly distinct vertical positions:
+        // Ground star floats just above track (Y ~ 0.28)
+        // Air star floats high in the jump apex (Y ~ 1.62)
+        const targetY = kind === 'star'
+          ? (isAir ? 1.62 + Math.sin(game.time * 3 + reward.id) * 0.08 : 0.28 + Math.sin(game.time * 2.5 + reward.id) * 0.04)
+          : 0;
+        mesh.position.set(kind === 'star' ? laneX(reward.lane) : 4.9, targetY, depth(reward.x));
+        if (kind === 'star') {
+          mesh.children[0].rotation.y = game.time * 1.5;
+          mesh.children[0].rotation.z = Math.sin(game.time * 0.8) * 0.12;
+          mesh.scale.setScalar(isAir ? 1.15 : 0.95);
+        }
       }
     }
     for (const [key, mesh] of this.rewardMeshes) {
@@ -693,10 +731,25 @@ export class Renderer {
       const t = this.reducedMotion ? 0 : game.time;
       this.clouds.forEach((cloud, i) => { cloud.position.x = cloud.userData.baseX + Math.sin(t * .07 + i) * 1.8; });
       this.butterflies.forEach((butterfly, i) => {
-        const { origin, wings } = butterfly.userData;
-        butterfly.position.set(origin.x + Math.sin(t * .8 + i) * .5, origin.y + Math.sin(t * 1.5 + i) * .2, origin.z + Math.cos(t * .6 + i) * 1.2);
-        butterfly.rotation.z = Math.sin(t + i) * .16;
-        wings.forEach((wing, j) => { wing.rotation.y = (j ? 1 : -1) * (.35 + Math.sin(t * 9 + i) * .65); });
+        const u = butterfly.userData;
+        const zPos = ((u.baseZ + game.distance * RULES.worldScale + t * u.flightSpeedZ + 100) % 106 + 106) % 106 - 100;
+        const wanderX = Math.sin(t * u.flightSpeedX + u.phase) * 1.3 + Math.cos(t * 1.6 + u.phase) * 0.5;
+        let xPos = u.baseX + wanderX;
+        if (u.side < 0) {
+          xPos = Math.min(-4.4, Math.max(-10.5, xPos));
+        } else {
+          xPos = Math.max(4.4, Math.min(10.5, xPos));
+        }
+        const yPos = Math.max(0.6, u.baseY + Math.sin(t * 2.2 + u.phase) * 0.45 + Math.cos(t * 0.8 + i) * 0.3);
+        const vx = Math.cos(t * u.flightSpeedX + u.phase) * u.flightSpeedX * 1.3;
+        const vz = u.flightSpeedZ - (game.phase === 'running' ? game.speed * RULES.worldScale : 0);
+        butterfly.position.set(xPos, yPos, zPos);
+        butterfly.rotation.y = Math.atan2(vx, vz);
+        butterfly.rotation.z = Math.sin(t * 2.5 + u.phase) * 0.18;
+        butterfly.rotation.x = Math.sin(t * 1.8 + i) * 0.12;
+        u.wings.forEach((wing, j) => {
+          wing.rotation.y = (j ? 1 : -1) * (0.35 + Math.sin(t * 22 + u.phase) * 0.72);
+        });
       });
       this.birds.forEach((bird, i) => {
         const { origin, wings } = bird.userData;
@@ -706,8 +759,25 @@ export class Renderer {
     }
     if (ocean) {
       this.fish.forEach((fish, i) => {
-        fish.position.x = fish.userData.baseX + Math.sin(game.oceanTime * .4 + i) * 1.1;
-        fish.rotation.y = Math.sin(game.oceanTime * .8 + i) * .3;
+        const u = fish.userData;
+        const ot = game.oceanTime;
+        const zPos = ((u.baseZ + game.distance * RULES.worldScale + ot * u.speedZ + 100) % 106 + 106) % 106 - 100;
+        const wanderX = Math.sin(ot * u.speedX + u.phase) * 1.5 + Math.sin(ot * 1.1 + i) * 0.6;
+        let xPos = u.baseX + wanderX;
+        if (u.side < 0) {
+          xPos = Math.min(-4.5, Math.max(-11.0, xPos));
+        } else {
+          xPos = Math.max(4.5, Math.min(11.0, xPos));
+        }
+        const yPos = Math.max(0.7, Math.min(4.6, u.baseY + Math.sin(ot * u.speedY + u.phase) * 0.75));
+        const vx = Math.cos(ot * u.speedX + u.phase) * u.speedX * 1.5;
+        const vz = u.speedZ - (game.phase === 'running' ? game.speed * RULES.worldScale : 0);
+        fish.position.set(xPos, yPos, zPos);
+        const heading = Math.atan2(vx, vz);
+        const wag = Math.sin(ot * 7.5 + u.phase) * 0.15;
+        fish.rotation.y = heading + wag;
+        fish.rotation.x = Math.sin(ot * u.speedY + u.phase) * 0.12;
+        fish.rotation.z = Math.sin(ot * 2.8 + i) * 0.08;
       });
       this.bubbles.forEach((bubble, i) => { bubble.position.y = (i * .7 + game.oceanTime * .5) % 8; });
     }
