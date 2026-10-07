@@ -1,0 +1,96 @@
+<!doctype html>
+<html lang="zh-CN">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
+    <meta name="theme-color" content="#f8f7ef" />
+    <meta name="description" content="小鸡的 3D 三赛道冒险。左右换道、跳过随机障碍，发现管道，去海洋逛逛！" />
+    <title>小鸡跳跳跳 · 一蹦一跳的小冒险</title>
+    <link rel="icon" href="./favicon.svg" type="image/svg+xml" />
+    <link rel="stylesheet" href="./src/styles.css" />
+    <script type="module" src="./src/app.js"></script>
+  </head>
+  <body>
+    <div class="page">
+      <header class="topbar">
+        <a class="brand" href="./" aria-label="小鸡跳跳跳首页">
+          <img src="./favicon.svg" width="36" height="36" alt="" />
+          <span>小鸡跳跳跳<span class="brand-dot">.</span></span>
+        </a>
+        <button class="help-button" id="help-button"><span aria-hidden="true">?</span> 玩法说明</button>
+      </header>
+
+      <main>
+        <div class="intro">
+          <div>
+            <p class="eyebrow"><span></span> 3D 三赛道 · 一蹦一跳的小冒险</p>
+            <h1>今天，也要开心地<span class="title-accent">跳一跳<svg viewBox="0 0 210 12" aria-hidden="true"><path d="M3 8 Q100 -1 207 7" /></svg></span>。</h1>
+          </div>
+          <p class="intro-note">蓝天、草地，还有一只勇敢的小鸡。<br />向 <strong>1000 分</strong>的小目标出发吧！<span class="note-flower" aria-hidden="true">✿</span></p>
+        </div>
+
+        <section class="game-shell" aria-label="小鸡跳跳跳游戏">
+          <div class="game-field" id="game-field" data-world="grass" data-phase="ready">
+            <canvas id="game-canvas" aria-label="小鸡 3D 三赛道游戏，电脑空格跳跃、鼠标左键向左和右键向右换道；手机左右滑动换道、轻点跳跃；P 或 Esc 暂停" tabindex="0"></canvas>
+            <div class="hud">
+              <div class="life-panel">
+                <span class="hud-caption">小鸡的勇气</span>
+                <div class="hearts" id="hearts" role="img" aria-label="剩余 3 颗爱心">
+                  <svg viewBox="0 0 32 30" aria-hidden="true"><path d="M16 27 C13 24 2 17 2 9 A7 7 0 0 1 16 5 A7 7 0 0 1 30 9 C30 17 19 24 16 27Z" /></svg>
+                  <svg viewBox="0 0 32 30" aria-hidden="true"><path d="M16 27 C13 24 2 17 2 9 A7 7 0 0 1 16 5 A7 7 0 0 1 30 9 C30 17 19 24 16 27Z" /></svg>
+                  <svg viewBox="0 0 32 30" aria-hidden="true"><path d="M16 27 C13 24 2 17 2 9 A7 7 0 0 1 16 5 A7 7 0 0 1 30 9 C30 17 19 24 16 27Z" /></svg>
+                </div>
+              </div>
+              <button class="pause-button" id="pause-button" hidden aria-label="暂停游戏" aria-keyshortcuts="p Escape" title="暂停 / 继续（P 或 Esc）"><svg viewBox="0 0 20 20" aria-hidden="true"><path d="M6 4v12M14 4v12" /></svg><span>暂停</span></button>
+              <div class="score-panel">
+                <span class="hud-caption">成功躲避</span>
+                <span class="score" id="score" aria-live="polite" aria-atomic="true">0</span>
+                <span class="score-target">/ 1000</span>
+              </div>
+            </div>
+
+            <div class="overlay" id="overlay">
+              <div class="overlay-card" id="overlay-card">
+                <span class="card-badge" id="card-badge">小小的脚步，大大的冒险</span>
+                <img class="card-chick" src="./favicon.svg" alt="" />
+                <h2 id="card-title">准备好向前跑了吗？</h2>
+                <p id="card-copy">换道、跳跃，躲开路上的小障碍。<br />发现管道，再去海里转一圈。</p>
+                <button class="primary-button" id="primary-button"><span id="primary-label">开始冒险</span><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M5 12h14M13 6l6 6-6 6" /></svg></button>
+                <button class="secondary-button" id="restart-button" hidden>重新开始</button>
+                <span class="card-hint" id="card-hint">电脑：空格跳跃 · 鼠标左右键换道<br />手机：轻点跳跃 · 左右滑动换道</span>
+              </div>
+            </div>
+
+            <div class="world-pill"><span id="world-icon" aria-hidden="true">✿</span><span id="world-label">草地漫游</span><span class="pill-dot"></span><span id="world-hint">晴天，适合蹦蹦跳跳</span></div>
+            <div class="speed-pill" id="speed-pill"><svg viewBox="0 0 20 20" aria-hidden="true"><path d="M2 6h10M5 10h13M2 14h10" /></svg><span id="speed-label">速度 ×1.00</span></div>
+            <div class="toast" id="toast" role="status" hidden></div>
+          </div>
+          <div class="progress-track" role="progressbar" aria-label="通关进度" aria-valuemin="0" aria-valuemax="1000" aria-valuenow="0" id="progress"><div id="progress-fill"></div></div>
+        </section>
+
+        <div class="play-guide">
+          <div class="guide-item"><span class="key-icon" aria-hidden="true">↔</span><p><strong>左右换道，轻轻一跳</strong><span>鼠标左右键 / 左右滑动换道<br />空格 / 轻点画面跳跃</span></p></div>
+          <div class="guide-item"><svg class="guide-icon bone-icon" viewBox="0 0 36 36" aria-hidden="true"><path d="M12 10c-3-6-11-3-8 3-6 3-2 10 3 8l17 8c3 6 11 3 8-3 6-3 2-10-3-8Z" /></svg><p><strong>越过小障碍</strong><span>每成功越过一个，+1 分</span></p></div>
+          <div class="guide-item"><svg class="guide-icon pipe-icon" viewBox="0 0 36 36" aria-hidden="true"><path d="M9 13h18v20H9Z" /><rect x="5" y="5" width="26" height="10" rx="3" /></svg><p><strong>发现秘密管道</strong><span>落入开口，穿梭草地与海洋</span></p></div>
+          <button class="jump-button" id="jump-button" aria-label="跳一下"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 19V5M6 11l6-6 6 6" /></svg>跳一下</button>
+        </div>
+        <p class="footer-note"><span aria-hidden="true">✦</span> 慢慢来，小鸡的每一步都很可爱。 <span class="pause-note">按 P 或 Esc 暂停</span></p>
+      </main>
+    </div>
+
+    <dialog id="help-dialog" aria-labelledby="help-title">
+      <button class="dialog-close" id="close-help" aria-label="关闭玩法说明">×</button>
+      <span class="card-badge">给小冒险家的小纸条</span>
+      <h2 id="help-title">怎么玩？</h2>
+      <ul class="help-list">
+        <li><strong>三条赛道，自动向前</strong><p>电脑按鼠标左键向左移动一格、右键向右移动一格，空格跳跃。手机向左滑向左换道，向右滑向右换道；轻点画面或「跳一下」跳跃。最边上的赛道不能继续向外移动，落地后才能再次跳起。</p></li>
+        <li><strong>随机障碍，收集分数</strong><p>每排随机出现 0～3 个障碍，可能整排空着，也可能三条赛道都有。跳过或换道躲开障碍，每个加 1 分，空跳不加分。分数越高，前进越快！</p></li>
+        <li><strong>爱心是你的勇气</strong><p>碰撞扣一颗爱心，之后短暂无敌。三颗爱心用完后，等 2.5 秒再点击「再试一次」重新挑战。</p></li>
+        <li><strong>管道里藏着一片海</strong><p>管道随机出现在某条赛道，换到那条赛道，从上方落入绿色管道进入海洋，再跳进深绿色管道返回草地。海洋里的跳跃更利落，落地更快。</p></li>
+        <li><strong>海洋里的塑料垃圾</strong><p>小心塑料瓶、黑色塑料袋和透明塑料袋。渔网很少见，平均每 100 个海洋障碍约 1～2 个。碰到渔网会扣一颗爱心，稍等自动挣脱；深绿色落网有提前预警，可以换道或跳过。</p></li>
+        <li><strong>向 1000 分出发</strong><p>达到 1000 分即可通关。点击「暂停」休息，电脑也可按 P 或 Esc 暂停或继续。切换标签页会自动暂停。</p></li>
+      </ul>
+      <button class="primary-button" id="help-done">知道啦，去跳跳！</button>
+    </dialog>
+  </body>
+</html>

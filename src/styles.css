@@ -1,0 +1,99 @@
+:root { font-family: "Microsoft YaHei", "PingFang SC", "Noto Sans CJK SC", system-ui, sans-serif; color: #344838; background: #f8f7ef; font-synthesis: none; --green: #467254; --muted: #8b9584; --yellow: #f7d772; }
+* { box-sizing: border-box; }
+body { margin: 0; background-image: radial-gradient(#6d79550c .8px, transparent .8px); background-size: 7px 7px; }
+button, a { -webkit-tap-highlight-color: transparent; }
+button { font: inherit; cursor: pointer; }
+button:focus-visible, a:focus-visible, canvas:focus-visible { outline: 3px solid #d8aa3e; outline-offset: 4px; }
+button { transition: background .18s, transform .18s, box-shadow .18s; }
+button:active { transform: translateY(2px); }
+[hidden] { display: none !important; }
+.page { width: min(1120px, calc(100% - 80px)); margin: 0 auto; }
+.topbar { display: flex; align-items: center; justify-content: space-between; height: 86px; border-bottom: 1px solid #e7e9db; }
+.brand { display: flex; align-items: center; gap: 11px; color: #445841; text-decoration: none; font-size: 17px; font-weight: 800; letter-spacing: 1px; }
+.brand img { border-radius: 12px; }
+.brand-dot { color: #c6a242; font-size: 26px; margin-left: 2px; }
+.help-button { border: none; background: transparent; color: #7a8673; font-size: 12px; display: flex; align-items: center; gap: 7px; padding: 9px 0 9px 12px; }
+.help-button > span { width: 18px; height: 18px; border: 1.5px solid #a1ad92; border-radius: 50%; font: 700 12px/16px system-ui; text-align: center; }
+.help-button:hover { color: #344838; }
+.intro { display: flex; justify-content: space-between; align-items: center; padding: 27px 2px 29px; }
+.eyebrow { font-size: 10px; color: #8a987b; letter-spacing: 3px; margin: 0 0 11px; display: flex; align-items: center; gap: 7px; }
+.eyebrow > span { width: 6px; height: 6px; border-radius: 50%; background: #a2b482; }
+h1 { font-size: clamp(24px, 2.9vw, 37px); font-weight: 800; letter-spacing: -.5px; margin: 0; line-height: 1.35; }
+.title-accent { color: #638246; display: inline-block; position: relative; margin: 0 3px; }
+.title-accent svg { position: absolute; bottom: -8px; left: -2px; width: 100%; height: 10px; overflow: visible; fill: none; stroke: #e6c974; stroke-width: 4px; stroke-linecap: round; }
+.intro-note { position: relative; color: #929c88; font-size: 11px; line-height: 1.95; margin: 15px 44px 0 20px; }
+.intro-note strong { color: #708754; font-weight: 600; }
+.note-flower { position: absolute; right: -44px; top: 5px; color: #e7c65c; font-size: 35px; transform: rotate(14deg); }
+.game-shell { overflow: hidden; border-radius: 23px; box-shadow: 0 12px 34px #53734c0e, 0 0 0 7px #fff9; border: 1px solid #ffffff; }
+.game-field { position: relative; width: 100%; aspect-ratio: 2 / 1; background: #a3d9e6; overflow: hidden; isolation: isolate; touch-action: none; user-select: none; }
+#game-canvas { display: block; width: 100%; height: 100%; touch-action: none; }
+.hud { position: absolute; inset: 22px 27px auto; display: flex; align-items: flex-start; justify-content: space-between; pointer-events: none; }
+.hud-caption { display: block; font-size: 10px; letter-spacing: 2px; color: #fff; opacity: .94; text-shadow: 0 1px 4px #468e9c30; }
+.hearts { display: flex; gap: 5px; margin-top: 9px; }
+.hearts svg { width: 26px; height: 25px; fill: #f29183; filter: drop-shadow(0 2px 0 #ce746c30); stroke: #fff; stroke-width: 1.5px; transition: fill .25s; }
+.hearts svg.lost { fill: #ffffff35; stroke: #ffffff7d; filter: none; }
+.score-panel { color: #fff; text-align: right; min-width: 95px; }
+.score { display: block; font: 800 49px/1.12 "Trebuchet MS", system-ui, sans-serif; font-variant-numeric: tabular-nums; text-shadow: 0 3px 0 #5798a13b; letter-spacing: 1px; margin-top: 3px; }
+.score-target { font: 500 11px/1.5 system-ui; letter-spacing: 2px; opacity: .88; }
+.pause-button { position: absolute; left: 50%; transform: translateX(-50%); display: flex; align-items: center; justify-content: center; gap: 9px; pointer-events: auto; min-width: 112px; min-height: 48px; padding: 12px 20px; border: 2px solid #fff; border-radius: 14px; color: #000; background: #fffdf3; box-shadow: 0 3px 0 #78978c; font-size: 16px; font-weight: 700; }
+.pause-button:active { transform: translateX(-50%) translateY(2px); }
+.pause-button svg { width: 20px; height: 20px; fill: none; stroke: currentColor; stroke-width: 3px; stroke-linecap: round; }
+.pause-button:hover { background: #fff1c9; }
+.overlay { position: absolute; inset: 0; display: flex; align-items: center; justify-content: center; padding: 28px; pointer-events: none; }
+.overlay-card { position: relative; background: #fffdf3f5; border: 1px solid #fff; border-radius: 25px; box-shadow: 0 10px 0 #667d4410, 0 15px 50px #4f807e12; text-align: center; width: 342px; padding: 23px 31px 20px; transform: translateY(-8px); animation: card-enter .35s ease-out; pointer-events: auto; }
+@keyframes card-enter { from { opacity: 0; transform: translateY(4px); } to { opacity: 1; transform: translateY(-8px); } }
+.card-badge { display: inline-block; color: #a3976f; background: #f5eed8; border-radius: 20px; padding: 5px 10px; font-size: 9px; letter-spacing: 1px; }
+.card-chick { width: 55px; height: 55px; display: block; margin: 15px auto 11px; border-radius: 20px; transform: rotate(-7deg); }
+.overlay h2 { font-size: 21px; letter-spacing: -.5px; margin: 0 0 9px; font-weight: 800; }
+.overlay p { font-size: 11px; color: #919880; line-height: 1.9; margin: 0 0 18px; }
+.primary-button { border: 0; border-radius: 13px; background: #4f7958; color: #fffef2; display: flex; align-items: center; justify-content: center; gap: 15px; padding: 13px 20px; width: 100%; font-size: 13px; font-weight: 700; box-shadow: 0 4px 0 #365e43; letter-spacing: 1px; }
+.primary-button svg { height: 17px; width: 17px; stroke: currentColor; fill: none; stroke-width: 1.8px; stroke-linecap: round; stroke-linejoin: round; }
+.primary-button:hover { background: #436d4c; }
+.card-hint { font-size: 9px; display: block; margin-top: 15px; color: #a7aa94; letter-spacing: .4px; white-space: pre-line; line-height: 1.8; }
+.secondary-button { color: #819074; font-size: 10px; background: none; border: none; padding: 12px 18px 0; }
+.world-pill, .speed-pill { position: absolute; bottom: 18px; display: flex; align-items: center; gap: 7px; font-size: 10px; padding: 7px 11px; border: 1px solid #ffffff40; border-radius: 30px; background: #faffedbc; color: #60805a; pointer-events: none; }
+.world-pill { left: 23px; }
+#world-icon { font-size: 15px; color: #82a768; line-height: 1; }
+#world-hint { font-size: 9px; opacity: .78; }
+.pill-dot { width: 3px; height: 3px; border-radius: 50%; background: currentColor; opacity: .5; }
+.speed-pill { right: 23px; background: #386a3f29; color: #f6fff2; }
+.speed-pill svg { width: 16px; height: 16px; stroke: currentColor; fill: none; stroke-width: 1.5px; stroke-linecap: round; }
+.progress-track { height: 5px; background: #c5dbb0; }
+#progress-fill { height: 100%; width: 0; background: #588752; transition: width .25s ease; }
+.toast { position: absolute; top: 115px; left: 50%; transform: translateX(-50%); width: max-content; max-width: 85%; color: #537957; background: #fffef2ec; border: 1px solid #fff; border-radius: 30px; padding: 9px 17px; font-size: 11px; box-shadow: 0 4px 20px #45685410; pointer-events: none; }
+.play-guide { display: flex; align-items: center; justify-content: space-between; gap: 20px; padding: 23px 3px 12px; }
+.guide-item { display: flex; align-items: center; gap: 12px; }
+.guide-item p { margin: 0; display: flex; flex-direction: column; gap: 5px; }
+.guide-item strong { font-size: 11px; font-weight: 600; color: #64745c; }
+.guide-item p > span { font-size: 10px; color: #a0a68f; }
+.key-icon { color: #92a085; border: 1px solid #daddcc; box-shadow: 0 3px 0 #e8eadb; border-radius: 8px; width: 36px; height: 31px; display: flex; align-items: center; justify-content: center; font: 23px system-ui; background: #fffff659; }
+.guide-icon { width: 31px; height: 31px; flex: 0 0 auto; }
+.bone-icon { fill: #eee8d7; stroke: #c7c6b3; stroke-width: 1.5px; transform: rotate(-15deg); }
+.pipe-icon { fill: #a6c38b; stroke: #7a9967; stroke-width: 1.3px; }
+.jump-button { display: flex; align-items: center; justify-content: center; gap: 9px; padding: 12px 24px; border: 1px solid #dfe5ce; border-radius: 13px; background: #eff2e1; color: #6c8355; font-size: 11px; font-weight: 700; }
+.jump-button svg { width: 16px; height: 16px; stroke: currentColor; fill: none; stroke-width: 1.8px; stroke-linecap: round; stroke-linejoin: round; }
+.jump-button:hover { background: #e4eccf; }
+.jump-button:disabled { opacity: .45; cursor: default; }
+.footer-note { display: flex; align-items: center; gap: 7px; color: #aab09b; font-size: 9px; margin: 8px 0 22px; letter-spacing: .3px; }
+.footer-note > span:first-child { color: #c5b678; font-size: 12px; }
+.pause-note { margin-left: auto; opacity: .9; }
+dialog { width: min(410px, calc(100% - 36px)); border: 1px solid #fff; padding: 30px; border-radius: 23px; color: #344838; background: #fffdf3; box-shadow: 0 20px 70px #34524020; }
+dialog::backdrop { background: #304e4560; backdrop-filter: blur(4px); }
+.dialog-close { position: absolute; right: 13px; top: 10px; background: none; border: 0; color: #899681; font-size: 25px; width: 30px; height: 30px; }
+dialog h2 { font-size: 25px; margin: 18px 0; }
+.help-list { list-style: none; padding: 0; margin: 0 0 23px; counter-reset: help; }
+.help-list li { counter-increment: help; padding-left: 30px; position: relative; margin-bottom: 15px; }
+.help-list li::before { content: counter(help); position: absolute; left: 0; top: 1px; background: #edf1df; color: #7b9365; border-radius: 8px; width: 20px; height: 20px; font: 600 11px/20px system-ui; text-align: center; }
+.help-list strong { font-size: 12px; font-weight: 600; }
+.help-list p { margin: 5px 0 0; font-size: 11px; line-height: 1.8; color: #939c87; }
+.game-field[data-world="ocean"] .world-pill { color: #537f89; background: #f0fffdca; }
+.game-field[data-world="ocean"] #world-icon { color: #70a2b2; }
+.game-field[data-world="ocean"] .speed-pill { background: #427c8a38; }
+.game-field.arriving::after { content: ""; position: absolute; inset: 0; z-index: 1; background: #eafff6; pointer-events: none; animation: world-arrival .45s forwards; }
+@keyframes world-arrival { from { opacity: .85; } to { opacity: 0; } }
+@media (min-width: 701px) and (max-height: 820px) { .topbar { height: 68px; } .intro { padding: 20px 2px 23px; } h1 { font-size: 30px; } .game-shell { width: min(100%, calc((100svh - 257px) * 2)); margin: 0 auto; } .play-guide { padding-top: 18px; } }
+@media (max-width: 900px) { .page { width: calc(100% - 48px); } .intro-note { font-size: 10px; } .guide-item { gap: 8px; } .play-guide { gap: 12px; } .jump-button { padding: 11px 16px; } }
+@media (max-width: 700px) { .page { width: calc(100% - 32px); } .topbar { height: 70px; } .brand { font-size: 14px; gap: 8px; } .brand img { width: 31px; height: 31px; } .help-button { font-size: 10px; } .intro { padding: 25px 0 27px; } h1 { font-size: clamp(21px, 4.6vw, 29px); letter-spacing: -1px; } .intro-note { display: none; } .eyebrow { font-size: 9px; letter-spacing: 2px; margin-bottom: 12px; } .game-shell { border-radius: 20px; box-shadow: 0 0 0 5px #fff9, 0 12px 34px #53734c0e; } .game-field { aspect-ratio: 1.22 / 1; min-height: 280px; } .hud { inset: 17px 17px auto; } .hud-caption { font-size: 8px; letter-spacing: 1px; } .hearts { gap: 3px; margin-top: 7px; } .hearts svg { width: 21px; height: 21px; } .score { font-size: 35px; } .score-target { font-size: 9px; } .score-panel { min-width: 65px; } .pause-button { min-width: 92px; min-height: 44px; font-size: 14px; padding: 10px 12px; gap: 7px; } .pause-button svg { width: 18px; height: 18px; } .overlay { padding: 65px 15px 40px; } .overlay-card { padding: 17px 23px 16px; width: min(285px, 100%); border-radius: 20px; } .card-badge { font-size: 8px; padding: 4px 8px; } .card-chick { width: 39px; height: 39px; margin: 10px auto; } .overlay h2 { font-size: 17px; margin-bottom: 7px; } .overlay p { font-size: 10px; margin-bottom: 13px; } .primary-button { padding: 11px 18px; font-size: 12px; border-radius: 10px; } .card-hint { margin-top: 11px; font-size: 8px; } .world-pill { left: 12px; bottom: 12px; padding: 5px 9px; font-size: 9px; } #world-hint, .pill-dot { display: none; } .speed-pill { right: 12px; bottom: 12px; padding: 5px 8px; font-size: 9px; } .play-guide { display: grid; grid-template-columns: 1fr 1fr; gap: 21px 10px; padding: 24px 1px 15px; } .guide-item p > span { font-size: 9px; } .guide-item strong { font-size: 10px; } .guide-icon { width: 28px; height: 28px; } .jump-button { padding: 12px 16px; width: 100%; font-size: 12px; } .footer-note { font-size: 8px; flex-wrap: wrap; line-height: 1.8; } .pause-note { display: none; } .toast { top: 83px; font-size: 10px; padding: 7px 11px; } }
+@media (max-width: 420px) { .game-field { min-height: 360px; } .overlay { align-items: flex-start; padding: 105px 15px 40px; } .overlay-card { padding: 12px 23px; } .card-chick { width: 30px; height: 30px; margin: 7px auto; } .overlay p { line-height: 1.7; } .card-hint { margin-top: 8px; } .game-field[data-phase="paused"] .card-hint, .game-field[data-phase="paused"] .card-chick { display: none; } .game-field[data-phase="paused"] .card-badge { margin-bottom: 10px; } }
+@media (max-height: 500px) and (min-width: 550px) { .page { width: calc(100% - 32px); } .topbar { height: 43px; } .brand img { width: 26px; height: 26px; } .brand { font-size: 12px; } .intro { display: none; } .game-shell { margin: 12px auto; width: min(100%, calc((100svh - 90px) * 2)); } .game-field { aspect-ratio: 2 / 1; min-height: 0; } .play-guide, .footer-note { display: none; } .hud { inset: 13px 17px auto; } .hud-caption { font-size: 8px; } .hearts svg { width: 20px; height: 20px; } .score { font-size: 32px; } .overlay { padding: 50px 15px 25px; } .overlay-card { width: 290px; padding: 12px 23px; } .card-chick { display: none; } .overlay h2 { font-size: 18px; margin-top: 10px; } .overlay p { font-size: 10px; margin-bottom: 12px; } .primary-button { padding: 10px; font-size: 11px; } .card-hint { font-size: 8px; margin-top: 11px; } .world-pill, .speed-pill { bottom: 10px; font-size: 9px; } .toast { top: 75px; } }
+@media (prefers-reduced-motion: reduce) { *, *::before, *::after { animation-duration: .01ms !important; transition-duration: .01ms !important; } }
