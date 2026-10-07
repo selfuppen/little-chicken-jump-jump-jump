@@ -110,7 +110,7 @@ export class Renderer {
     for (let i = 0; i < 32; i++) {
       const item = new THREE.Group();
       const side = i % 2 ? 1 : -1;
-      item.position.set(side * (4.8 + (i * 7 % 5) * 1.35), 0, -i * 3.1);
+      item.position.set(side * (5.9 + (i * 7 % 5) * 1.25), 0, -i * 3.1);
       item.userData.baseZ = item.position.z;
       item.scale.setScalar(.75 + (i * 11 % 7) / 10);
       if (ocean) {
@@ -130,16 +130,15 @@ export class Renderer {
           this.sphere(item, '#e5ccb0', [-.2, .12, .2], [.4, .2, .25]);
         }
       } else if (i % 3 !== 0) {
-        this.mesh(item, new THREE.CylinderGeometry(.12, .21, 1.5, 7), '#a68b65', [0, .7, 0]);
-        this.sphere(item, i % 2 ? '#7fac79' : '#91b47d', [0, 2.05, 0], [.95, 1.12, .95]);
-        this.sphere(item, '#a3c68b', [-.32, 2.65, .08], [.63, .72, .65]);
+        const key = `tree/${i % 4}`;
+        if (!this.templates.has(key)) this.templates.set(key, this.makeTree(i % 4));
+        const tree = this.templates.get(key).clone(true);
+        tree.rotation.y = i * .71;
+        item.add(tree);
       } else {
-        this.sphere(item, '#96b580', [0, .3, 0], [.8, .43, .65]);
-        for (let j = 0; j < 3; j++) {
-          this.rod(item, [j * .3, 0, .3], [j * .3, .5, .3], .025, '#719960');
-          this.sphere(item, '#fff1bb', [j * .3, .52, .3], [.12, .09, .12]);
-          this.sphere(item, '#e6b959', [j * .3, .57, .3], [.045, .04, .045]);
-        }
+        const key = `garden/${i % 2}`;
+        if (!this.templates.has(key)) this.templates.set(key, this.makeGarden(i % 2));
+        item.add(this.templates.get(key).clone(true));
       }
       group.add(item); group.userData.scroll.push(item);
     }
@@ -147,9 +146,15 @@ export class Renderer {
       for (let i = 0; i < 7; i++) {
         const x = (i - 3) * 9;
         this.sphere(group, '#a1bd8c', [x, 1.5, -75 - i % 2 * 9], [9, 5 + i % 3, 7]);
-        const cloud = new THREE.Group(); cloud.position.set(x, 13 + i % 3, -65);
-        for (let j = 0; j < 3; j++) this.sphere(cloud, '#fffaf0', [j * 1.6, Math.sin(j) * .5, 0], [2, 1.1 + j % 2 * .5, 1]);
-        group.add(cloud);
+      }
+      this.makeGrassSky(group);
+      // Low flowers and stones sit outside the lane boundaries.
+      for (let i = 0; i < 18; i++) {
+        const patch = this.templates.get(`garden/${i % 2}`).clone(true);
+        patch.scale.setScalar(.32 + i % 3 * .08);
+        patch.position.set((i % 2 ? 1 : -1) * (4.15 + i % 3 * .3), 0, -i * 4.6);
+        patch.userData.baseZ = patch.position.z;
+        group.add(patch); group.userData.scroll.push(patch);
       }
     } else {
       this.fish = [];
@@ -165,27 +170,198 @@ export class Renderer {
       this.bubbles = [];
       for (let i = 0; i < 22; i++) this.bubbles.push(this.sphere(group, '#def8f5', [((i * 13) % 21) - 10, i % 7, -5 - i * 2], [.07, .07, .07], .25));
     }
+    if (!ocean) this.batchScrollingScenery(group);
     return group;
+  }
+
+  batchScrollingScenery(group) {
+    const batches = new Map();
+    for (const item of group.userData.scroll) {
+      item.traverse((mesh) => {
+        if (!mesh.isMesh) return;
+        const key = `${mesh.geometry.uuid}/${mesh.material.uuid}/${mesh.castShadow}`;
+        if (!batches.has(key)) batches.set(key, { geometry: mesh.geometry, material: mesh.material, castShadow: mesh.castShadow, sources: [] });
+        const batch = batches.get(key);
+        if (mesh.isInstancedMesh) {
+          for (let i = 0; i < mesh.count; i++) {
+            const local = new THREE.Matrix4(); mesh.getMatrixAt(i, local);
+            batch.sources.push({ mesh, local });
+          }
+        } else batch.sources.push({ mesh });
+        mesh.visible = false;
+      });
+    }
+    group.userData.batches = [...batches.values()];
+    for (const batch of group.userData.batches) {
+      batch.mesh = new THREE.InstancedMesh(batch.geometry, batch.material, batch.sources.length);
+      batch.mesh.castShadow = batch.castShadow; batch.mesh.receiveShadow = true;
+      // The instances continuously wrap along the course, so their bounds move.
+      batch.mesh.frustumCulled = false;
+      group.add(batch.mesh);
+    }
+    this.batchMatrix = new THREE.Matrix4();
+  }
+
+  makeTree(variant) {
+    const tree = new THREE.Group();
+    const height = 1.45 + variant * .13;
+    this.mesh(tree, new THREE.CylinderGeometry(.11, .23, height, 12), '#a28663', [0, height / 2, 0]);
+    for (let i = 0; i < 3; i++) {
+      const angle = i * Math.PI * 2 / 3 + .3;
+      this.rod(tree, [0, .18, 0], [Math.cos(angle) * .35, .02, Math.sin(angle) * .35], .065, '#a28663');
+      this.rod(tree, [0, height * .65, 0], [Math.cos(angle) * .5, height + .24, Math.sin(angle) * .4], .06, '#a28663');
+    }
+    // A gently uneven, smooth crown gives the foliage a soft organic silhouette.
+    const crownGeometry = new THREE.SphereGeometry(1, 24, 18);
+    const positions = crownGeometry.getAttribute('position');
+    const colors = [];
+    const low = new THREE.Color(['#729764', '#729d70', '#819e66', '#779f74'][variant]);
+    const high = new THREE.Color(['#a8c886', '#afd094', '#bad493', '#a6c78b'][variant]);
+    for (let i = 0; i < positions.count; i++) {
+      const x = positions.getX(i), y = positions.getY(i), z = positions.getZ(i);
+      const ripple = 1 + .055 * Math.sin(x * 8 + variant) * Math.sin(z * 6 + y * 3);
+      positions.setXYZ(i, x * ripple, y * ripple, z * ripple);
+      const color = low.clone().lerp(high, Math.max(0, Math.min(1, (y + 1) * .5)));
+      colors.push(color.r, color.g, color.b);
+    }
+    crownGeometry.setAttribute('color', new THREE.Float32BufferAttribute(colors, 3));
+    crownGeometry.computeVertexNormals();
+    const crownMaterial = new THREE.MeshStandardMaterial({ vertexColors: true, roughness: 1 });
+    const crown = new THREE.Mesh(crownGeometry, crownMaterial);
+    crown.position.set(0, height + .64, 0);
+    crown.scale.set(1.04 + variant % 2 * .12, 1 + variant % 3 * .13, 1);
+    crown.castShadow = true; crown.receiveShadow = true; tree.add(crown);
+    for (const [x, y, z, scale] of [[-.58, -.05, .08, .68], [.54, .12, -.15, .66], [-.2, .65, -.1, .63]]) {
+      const lobe = crown.clone();
+      lobe.position.set(x, height + .64 + y, z); lobe.scale.setScalar(scale);
+      tree.add(lobe);
+    }
+    for (let i = 0; i < 2; i++) {
+      const scar = this.mesh(tree, new THREE.TorusGeometry(.075, .012, 4, 10, Math.PI), '#836b50', [0, .5 + i * .3, .17]);
+      scar.scale.y = .5;
+    }
+    if (variant === 1) {
+      for (const [x, y, z] of [[-.45, 1.93, .78], [.51, 2.15, .72], [.24, 2.58, .86]]) {
+        this.sphere(tree, '#e5a084', [x, y, z], [.085, .09, .085]);
+      }
+    }
+    return tree;
+  }
+
+  makeGarden(variant) {
+    const patch = new THREE.Group();
+    for (const [x, z, scale] of [[-.30, 0, .55], [.25, -.10, .46], [.04, .20, .40]]) {
+      this.sphere(patch, '#8fac78', [x, scale * .3, z], [scale, scale * .5, scale * .8]);
+    }
+    this.sphere(patch, '#bbbda6', [-.6, .12, .4], [.24, .14, .19]);
+    const petals = new THREE.InstancedMesh(new THREE.SphereGeometry(1, 10, 7), this.material(variant ? '#f4c9b5' : '#fff9dc'), 20);
+    const flower = new THREE.Object3D();
+    for (let i = 0; i < 4; i++) {
+      const x = -.45 + i * .27, y = .46 + i % 2 * .13, z = .38;
+      this.rod(patch, [x, .04, z], [x, y, z], .017, '#6e9661');
+      this.sphere(patch, '#e3b755', [x, y, z], [.045, .04, .045]);
+      for (let j = 0; j < 5; j++) {
+        const angle = j * Math.PI * 2 / 5;
+        flower.position.set(x + Math.cos(angle) * .075, y + Math.sin(angle) * .075, z);
+        flower.scale.set(.065, .044, .03); flower.rotation.z = angle; flower.updateMatrix();
+        petals.setMatrixAt(i * 5 + j, flower.matrix);
+      }
+    }
+    petals.castShadow = false; patch.add(petals);
+    return patch;
+  }
+
+  makeGrassSky(group) {
+    this.clouds = [];
+    for (let i = 0; i < 6; i++) {
+      const cloud = new THREE.Group();
+      cloud.position.set(-26 + i * 10.5, 11 + i % 3 * 1.9, -58 - i % 2 * 12);
+      cloud.userData.baseX = cloud.position.x;
+      cloud.scale.setScalar(.8 + i % 3 * .17);
+      for (const [x, y, size] of [[-2.2, 0, 1.3], [-.9, .35, 1.6], [.5, .58, 1.9], [2, .08, 1.3], [.4, -.25, 1.5]]) {
+        const puff = this.sphere(cloud, '#fffdf1', [x, y, 0], [size, size * .65, size * .75]);
+        puff.castShadow = false;
+      }
+      group.add(cloud); this.clouds.push(cloud);
+    }
+    const sun = new THREE.Group(); sun.position.set(23, 10.2, -64);
+    const face = this.mesh(sun, new THREE.SphereGeometry(1.85, 24, 16), '#fff0ad');
+    face.material = new THREE.MeshBasicMaterial({ color: '#fff0ad', fog: false }); face.castShadow = false;
+    const glowCanvas = document.createElement('canvas'); glowCanvas.width = glowCanvas.height = 128;
+    const ctx = glowCanvas.getContext('2d');
+    const glow = ctx.createRadialGradient(64, 64, 18, 64, 64, 64);
+    glow.addColorStop(0, '#fff0aa90'); glow.addColorStop(.5, '#ffe6a838'); glow.addColorStop(1, '#fff0aa00');
+    ctx.fillStyle = glow; ctx.fillRect(0, 0, 128, 128);
+    const halo = new THREE.Sprite(new THREE.SpriteMaterial({ map: new THREE.CanvasTexture(glowCanvas), transparent: true, depthWrite: false }));
+    halo.scale.set(9, 9, 1); sun.add(halo); group.add(sun);
+
+    this.butterflies = [];
+    for (let i = 0; i < 6; i++) {
+      const butterfly = new THREE.Group();
+      const color = ['#edbf73', '#d3b1d6', '#e7a59c'][i % 3];
+      const wings = [-1, 1].map((side) => {
+        const wing = new THREE.Group();
+        this.sphere(wing, color, [side * .19, .10, 0], [.20, .24, .035]);
+        this.sphere(wing, color, [side * .15, -.15, 0], [.15, .15, .03]);
+        this.sphere(wing, '#fff1cf', [side * .22, .13, .035], [.07, .09, .013]);
+        butterfly.add(wing); return wing;
+      });
+      this.sphere(butterfly, '#746f51', [0, 0, 0], [.028, .20, .026]);
+      for (const side of [-1, 1]) this.rod(butterfly, [0, .18, 0], [side * .07, .29, 0], .008, '#746f51');
+      butterfly.position.set((i % 2 ? 1 : -1) * (4.1 + i % 3 * .6), 1 + i % 2 * .3, -4 - i * 5.6);
+      butterfly.userData = { wings, origin: butterfly.position.clone() };
+      butterfly.traverse((mesh) => { if (mesh.isMesh) mesh.castShadow = false; });
+      group.add(butterfly); this.butterflies.push(butterfly);
+    }
+    this.birds = [];
+    for (let i = 0; i < 5; i++) {
+      const bird = new THREE.Group(), color = i % 2 ? '#adbbb5' : '#91a8bb';
+      this.sphere(bird, color, [0, 0, 0], [.14, .14, .29]);
+      this.sphere(bird, '#d4ded9', [0, .10, -.21], [.12, .12, .12]);
+      this.mesh(bird, new THREE.ConeGeometry(.045, .15, 5), '#d5ad67', [0, .09, -.36]).rotation.x = -Math.PI / 2;
+      const wings = [-1, 1].map((side) => {
+        const wing = new THREE.Group();
+        this.sphere(wing, color, [side * .24, 0, .015], [.30, .045, .15]);
+        wing.rotation.z = side * .12; bird.add(wing); return wing;
+      });
+      this.mesh(bird, new THREE.ConeGeometry(.12, .24, 3), color, [0, -.02, .35]).rotation.x = Math.PI / 2;
+      bird.position.set((i % 2 ? 1 : -1) * (6 + i * 1.4), 4.4 + i % 3 * .55, -14 - i * 5);
+      bird.rotation.y = i % 2 ? Math.PI / 2 : -Math.PI / 2;
+      bird.userData = { wings, origin: bird.position.clone() };
+      bird.traverse((mesh) => { if (mesh.isMesh) mesh.castShadow = false; });
+      group.add(bird); this.birds.push(bird);
+    }
   }
 
   makeChicken() {
     const chick = new THREE.Group();
-    this.sphere(chick, '#ffdb69', [0, .76, .04], [.55, .64, .49]);
-    this.sphere(chick, '#ffe58a', [0, 1.25, -.12], [.43, .43, .42]);
-    this.wings = [-1, 1].map((side) => this.sphere(chick, '#f0bf4b', [side * .5, .79, .02], [.16, .32, .3]));
-    for (let i = -1; i <= 1; i++) {
-      this.sphere(chick, '#efbb43', [i * .11, 1.66 + (i === 0 ? .05 : 0), -.1], [.075, .19, .08]).rotation.z = -i * .4;
-      this.sphere(chick, '#f9cf56', [i * .12, .65, .46], [.13, .23, .17]).rotation.x = -.55;
-    }
-    this.mesh(chick, new THREE.ConeGeometry(.12, .26, 4), '#eaa047', [0, 1.2, -.57]).rotation.x = -Math.PI / 2;
+    const body = this.mesh(chick, new THREE.SphereGeometry(1, 32, 24), '#ffdc70', [0, .88, 0]);
+    body.scale.set(.66, .67, .62);
+    this.wings = [-1, 1].map((side) => this.sphere(chick, '#f2c353', [side * .60, .86, .02], [.105, .24, .22]));
+    // One continuous three-crested wave, rather than three separate sticks.
+    const crest = new THREE.Shape();
+    crest.moveTo(-.34, 0); crest.quadraticCurveTo(-.06, -.04, .29, 0);
+    crest.bezierCurveTo(.41, .15, .40, .33, .28, .34);
+    crest.bezierCurveTo(.32, .25, .18, .20, .16, .10);
+    crest.bezierCurveTo(.23, .34, .15, .42, .07, .41);
+    crest.bezierCurveTo(.10, .28, -.02, .21, -.035, .10);
+    crest.bezierCurveTo(.02, .32, -.07, .41, -.15, .38);
+    crest.bezierCurveTo(-.13, .26, -.25, .19, -.27, .09);
+    crest.quadraticCurveTo(-.32, .05, -.34, 0);
+    this.mesh(chick, new THREE.ExtrudeGeometry(crest, { depth: .085, bevelEnabled: true, bevelThickness: .025, bevelSize: .02, bevelSegments: 3, steps: 1, curveSegments: 16 }), '#efbd49', [0, 1.48, -.06]);
+    this.mesh(chick, new THREE.ConeGeometry(.12, .23, 4), '#eaa047', [0, 1.01, -.68]).rotation.x = -Math.PI / 2;
     for (const side of [-1, 1]) {
-      this.sphere(chick, '#444939', [side * .30, 1.33, -.39], [.045, .065, .045]);
-      this.sphere(chick, '#efa186', [side * .34, 1.18, -.35], [.065, .04, .028]);
+      this.sphere(chick, '#444939', [side * .235, 1.12, -.55], [.045, .065, .035]);
+      this.sphere(chick, '#fffaf0', [side * .235 + .012, 1.145, -.577], [.012, .015, .01]);
+      this.sphere(chick, '#efa186', [side * .35, .95, -.51], [.065, .04, .028]);
     }
     this.feet = [-1, 1].map((side) => {
-      const foot = new THREE.Group(); foot.position.set(side * .22, .1, 0);
-      this.rod(foot, [0, 0, 0], [0, .25, 0], .04, '#df9745');
-      for (let i = -1; i <= 1; i++) this.rod(foot, [0, 0, 0], [i * .08, -.03, -.18], .035, '#df9745');
+      const foot = new THREE.Group(); foot.position.set(side * .24, .09, .09);
+      this.rod(foot, [0, 0, 0], [0, .23, 0], .035, '#df9745');
+      for (const tip of [[0, -.035, -.24], [-.15, -.035, -.15], [.15, -.035, -.15]]) {
+        this.rod(foot, [0, 0, 0], tip, .035, '#df9745');
+        this.sphere(foot, '#df9745', tip, [.035, .035, .035]);
+      }
       chick.add(foot); return foot;
     });
     return chick;
@@ -317,7 +493,34 @@ export class Renderer {
     this.grassScenery.visible = !ocean; this.oceanScenery.visible = ocean;
     const scenery = ocean ? this.oceanScenery : this.grassScenery;
     for (const item of scenery.userData.scroll) item.position.z = ((item.userData.baseZ + game.distance * RULES.worldScale + 100) % 106 + 106) % 106 - 100;
+    if (scenery.userData.batches && scenery.userData.batchDistance !== game.distance) {
+      scenery.updateMatrixWorld(true);
+      for (const batch of scenery.userData.batches) {
+        batch.sources.forEach((source, i) => {
+          this.batchMatrix.copy(source.mesh.matrixWorld);
+          if (source.local) this.batchMatrix.multiply(source.local);
+          batch.mesh.setMatrixAt(i, this.batchMatrix);
+        });
+        batch.mesh.instanceMatrix.needsUpdate = true;
+      }
+      scenery.userData.batchDistance = game.distance;
+    }
     this.trackDetails.position.z = (game.distance * RULES.worldScale) % 3;
+    if (!ocean) {
+      const t = this.reducedMotion ? 0 : game.time;
+      this.clouds.forEach((cloud, i) => { cloud.position.x = cloud.userData.baseX + Math.sin(t * .07 + i) * 1.8; });
+      this.butterflies.forEach((butterfly, i) => {
+        const { origin, wings } = butterfly.userData;
+        butterfly.position.set(origin.x + Math.sin(t * .8 + i) * .5, origin.y + Math.sin(t * 1.5 + i) * .2, origin.z + Math.cos(t * .6 + i) * 1.2);
+        butterfly.rotation.z = Math.sin(t + i) * .16;
+        wings.forEach((wing, j) => { wing.rotation.y = (j ? 1 : -1) * (.35 + Math.sin(t * 9 + i) * .65); });
+      });
+      this.birds.forEach((bird, i) => {
+        const { origin, wings } = bird.userData;
+        bird.position.set(origin.x + Math.sin(t * .35 + i) * 2, origin.y + Math.sin(t * 1.3 + i) * .18, origin.z + Math.cos(t * .35 + i) * .8);
+        wings.forEach((wing, j) => { wing.rotation.z = (j ? 1 : -1) * (.2 + Math.sin(t * 5 + i) * .5); });
+      });
+    }
     if (ocean) {
       this.fish.forEach((fish, i) => {
         fish.position.x = fish.userData.baseX + Math.sin(game.oceanTime * .4 + i) * 1.1;

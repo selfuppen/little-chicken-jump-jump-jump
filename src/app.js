@@ -17,7 +17,7 @@ let toastUntil = 0;
 let retryReadyAt = null;
 
 const cards = {
-  ready: { badge: '三条小路，一场 3D 冒险', title: '准备好向前跑了吗？', copy: '换道、跳跃，躲开路上的小障碍。<br />发现管道，再去海里转一圈。', button: '开始冒险', hint: '电脑：空格跳跃 · 鼠标左右键换道\n手机：轻点跳跃 · 左右滑动换道' },
+  ready: { badge: '三条小路，一场 3D 冒险', title: '准备好向前跑了吗？', copy: '换道、跳跃，躲开路上的小障碍。<br />发现管道，再去海里转一圈。', button: '开始冒险', hint: '电脑：← → 换道 · ↑ 跳跃\n手机：轻点跳跃 · 左右滑动换道' },
   paused: { badge: '小鸡正在歇歇脚', title: '休息一下，再出发。', copy: '蓝天和小草都会等你。<br />准备好了，就接着蹦蹦跳跳。', button: '继续冒险', hint: '按 P 或 Esc 也可以继续' },
   gameover: { badge: '每一次尝试，都值得一个抱抱', title: '小鸡要歇一会儿啦。', copy: '', button: '再试一次', hint: '新一局，三颗满满的勇气' },
   won: { badge: '1000 次小跳跃，1000 份小快乐', title: '通关啦！你太棒了！', copy: '小鸡把一路的快乐带回了家。<br />谢谢你，勇敢的小冒险家。', button: '再玩一次', hint: '草地和海洋，期待与你再见' },
@@ -156,7 +156,13 @@ window.addEventListener('pointercancel', (event) => pointers.delete(event.pointe
 
 window.addEventListener('keydown', (event) => {
   if ($('help-dialog').open) return;
-  if (event.code === 'Space' || event.code === 'Enter') {
+  if (event.code === 'ArrowLeft' || event.code === 'ArrowRight') {
+    if (event.target instanceof Element && event.target.closest('button, a, input, textarea, select, [contenteditable]')) return;
+    const held = event.repeat || keys.has(event.code);
+    keys.add(event.code);
+    event.preventDefault();
+    if (!held) game.moveLane(event.code === 'ArrowLeft' ? -1 : 1);
+  } else if (event.code === 'ArrowUp' || event.code === 'Space' || event.code === 'Enter') {
     const held = event.repeat || keys.has(event.code);
     keys.add(event.code);
     if (game.phase === 'gameover') {
@@ -182,7 +188,7 @@ window.addEventListener('keydown', (event) => {
 window.addEventListener('keyup', (event) => {
   keys.delete(event.code);
   if ($('help-dialog').open || (event.target instanceof Element && event.target.closest('button, a') && !event.target.closest('#primary-button'))) return;
-  if (game.phase === 'gameover' && (event.code === 'Space' || event.code === 'Enter')) event.preventDefault();
+  if (game.phase === 'gameover' && ['ArrowUp', 'Space', 'Enter'].includes(event.code)) event.preventDefault();
 });
 
 function pauseForVisibility() {

@@ -31,7 +31,7 @@
 
         <section class="game-shell" aria-label="小鸡跳跳跳游戏">
           <div class="game-field" id="game-field" data-world="grass" data-phase="ready">
-            <canvas id="game-canvas" aria-label="小鸡 3D 三赛道游戏，电脑空格跳跃、鼠标左键向左和右键向右换道；手机左右滑动换道、轻点跳跃；P 或 Esc 暂停" tabindex="0"></canvas>
+            <canvas id="game-canvas" aria-label="小鸡 3D 三赛道游戏，电脑按左、右方向键换道，上方向键跳跃；手机左右滑动换道、轻点跳跃；P 或 Esc 暂停" aria-keyshortcuts="ArrowLeft ArrowRight ArrowUp" tabindex="0"></canvas>
             <div class="hud">
               <div class="life-panel">
                 <span class="hud-caption">小鸡的勇气</span>
@@ -57,7 +57,7 @@
                 <p id="card-copy">换道、跳跃，躲开路上的小障碍。<br />发现管道，再去海里转一圈。</p>
                 <button class="primary-button" id="primary-button"><span id="primary-label">开始冒险</span><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M5 12h14M13 6l6 6-6 6" /></svg></button>
                 <button class="secondary-button" id="restart-button" hidden>重新开始</button>
-                <span class="card-hint" id="card-hint">电脑：空格跳跃 · 鼠标左右键换道<br />手机：轻点跳跃 · 左右滑动换道</span>
+                <span class="card-hint" id="card-hint">电脑：← → 换道 · ↑ 跳跃<br />手机：轻点跳跃 · 左右滑动换道</span>
               </div>
             </div>
 
@@ -69,7 +69,7 @@
         </section>
 
         <div class="play-guide">
-          <div class="guide-item"><span class="key-icon" aria-hidden="true">↔</span><p><strong>左右换道，轻轻一跳</strong><span>鼠标左右键 / 左右滑动换道<br />空格 / 轻点画面跳跃</span></p></div>
+          <div class="guide-item"><span class="key-icon" aria-hidden="true">↔</span><p><strong>左右换道，轻轻一跳</strong><span>← → / 左右滑动换道<br />↑ / 轻点画面跳跃</span></p></div>
           <div class="guide-item"><svg class="guide-icon bone-icon" viewBox="0 0 36 36" aria-hidden="true"><path d="M12 10c-3-6-11-3-8 3-6 3-2 10 3 8l17 8c3 6 11 3 8-3 6-3 2-10-3-8Z" /></svg><p><strong>越过小障碍</strong><span>每成功越过一个，+1 分</span></p></div>
           <div class="guide-item"><svg class="guide-icon pipe-icon" viewBox="0 0 36 36" aria-hidden="true"><path d="M9 13h18v20H9Z" /><rect x="5" y="5" width="26" height="10" rx="3" /></svg><p><strong>发现秘密管道</strong><span>落入开口，穿梭草地与海洋</span></p></div>
           <button class="jump-button" id="jump-button" aria-label="跳一下"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 19V5M6 11l6-6 6 6" /></svg>跳一下</button>
@@ -83,7 +83,7 @@
       <span class="card-badge">给小冒险家的小纸条</span>
       <h2 id="help-title">怎么玩？</h2>
       <ul class="help-list">
-        <li><strong>三条赛道，自动向前</strong><p>电脑按鼠标左键向左移动一格、右键向右移动一格，空格跳跃。手机向左滑向左换道，向右滑向右换道；轻点画面或「跳一下」跳跃。最边上的赛道不能继续向外移动，落地后才能再次跳起。</p></li>
+        <li><strong>三条赛道，自动向前</strong><p>电脑按键盘左方向键（←）向左移动一格、右方向键（→）向右移动一格，上方向键（↑）跳跃。手机向左滑向左换道，向右滑向右换道；轻点画面或「跳一下」跳跃。最边上的赛道不能继续向外移动，落地后才能再次跳起。</p></li>
         <li><strong>随机障碍，收集分数</strong><p>每排随机出现 0～3 个障碍，可能整排空着，也可能三条赛道都有。跳过或换道躲开障碍，每个加 1 分，空跳不加分。分数越高，前进越快！</p></li>
         <li><strong>爱心是你的勇气</strong><p>碰撞扣一颗爱心，之后短暂无敌。三颗爱心用完后，等 2.5 秒再点击「再试一次」重新挑战。</p></li>
         <li><strong>管道里藏着一片海</strong><p>管道随机出现在某条赛道，换到那条赛道，从上方落入绿色管道进入海洋，再跳进深绿色管道返回草地。海洋里的跳跃更利落，落地更快。</p></li>
