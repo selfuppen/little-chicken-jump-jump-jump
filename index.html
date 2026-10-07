@@ -42,6 +42,7 @@
                 </div>
               </div>
               <button class="pause-button" id="pause-button" hidden aria-label="暂停游戏" aria-keyshortcuts="p Escape" title="暂停 / 继续（P 或 Esc）"><svg viewBox="0 0 20 20" aria-hidden="true"><path d="M6 4v12M14 4v12" /></svg><span>暂停</span></button>
+              <div class="reward-panel"><span>★ 积分 <strong id="points">0</strong></span><span id="jump-count">跳过 0 个</span><button id="shop-button" hidden>进入商城</button></div>
               <div class="score-panel">
                 <span class="hud-caption">成功躲避</span>
                 <span class="score" id="score" aria-live="polite" aria-atomic="true">0</span>
@@ -78,6 +79,36 @@
       </main>
     </div>
 
+    <dialog id="shop-dialog" aria-labelledby="shop-title">
+      <button class="dialog-close" id="close-shop" aria-label="离开商城">×</button>
+      <span class="card-badge">每跳满 15 个障碍，遇见一次商城</span>
+      <h2 id="shop-title">小小商城</h2>
+      <p class="shop-balance">★ 积分余额：<strong id="shop-points">0</strong> · <span id="equipped-label">穿戴：小鸡</span></p>
+      <button class="secondary-button" id="shop-back" hidden>← 返回</button>
+      <div id="shop-home"><button class="shop-entry" id="skins-entry">皮肤 <span>挑一件喜欢的外衣 →</span></button></div>
+      <div id="shop-series" hidden>
+        <button class="shop-entry" data-category="fruit">水果 <span>水果系列 · 7 款 →</span></button>
+        <button class="shop-entry" data-category="animal">动物 <span>动物系列 · 6 款 →</span></button>
+      </div>
+      <div id="shop-catalog" hidden>
+        <div class="skin-grid" id="skin-list"></div>
+        <div class="skin-detail">
+          <canvas id="skin-preview" aria-label="皮肤三维外观，可拖动旋转"></canvas>
+          <label class="rotation-control">旋转查看 <input id="skin-angle" type="range" min="-180" max="180" value="0" aria-label="旋转皮肤外观" /></label>
+          <h3 id="skin-name"></h3>
+          <button class="primary-button" id="skin-action">兑换解锁</button>
+        </div>
+      </div>
+      <div id="purchase-confirm" hidden>
+        <p id="purchase-copy"></p>
+        <button class="primary-button" id="confirm-purchase">确认兑换</button>
+        <button class="secondary-button" id="cancel-purchase">取消</button>
+      </div>
+      <p id="shop-status" role="status" aria-live="polite"></p>
+      <button class="secondary-button" id="remove-skin">换回小鸡</button>
+      <button class="secondary-button" id="shop-done">离开商城，继续跑</button>
+    </dialog>
+
     <dialog id="help-dialog" aria-labelledby="help-title">
       <button class="dialog-close" id="close-help" aria-label="关闭玩法说明">×</button>
       <span class="card-badge">给小冒险家的小纸条</span>
@@ -85,9 +116,10 @@
       <ul class="help-list">
         <li><strong>三条赛道，自动向前</strong><p>电脑按键盘左方向键（←）向左移动一格、右方向键（→）向右移动一格，上方向键（↑）跳跃。手机向左滑向左换道，向右滑向右换道；轻点画面或「跳一下」跳跃。最边上的赛道不能继续向外移动，落地后才能再次跳起。</p></li>
         <li><strong>随机障碍，收集分数</strong><p>每排随机出现 0～3 个障碍，可能整排空着，也可能三条赛道都有。跳过或换道躲开障碍，每个加 1 分，空跳不加分。分数越高，前进越快！</p></li>
-        <li><strong>爱心是你的勇气</strong><p>碰撞扣一颗爱心，之后短暂无敌。三颗爱心用完后，等 2.5 秒再点击「再试一次」重新挑战。</p></li>
+        <li><strong>爱心是你的勇气</strong><p>碰撞扣一颗爱心，之后短暂无敌。每实际跳过 10 个障碍，回复 1/10 颗爱心，最多三颗。三颗爱心用完后，等 2.5 秒再点击「再试一次」重新挑战。</p></li>
         <li><strong>管道里藏着一片海</strong><p>管道随机出现在某条赛道，换到那条赛道，从上方落入绿色管道进入海洋，再跳进深绿色管道返回草地。海洋里的跳跃更利落，落地更快。</p></li>
         <li><strong>海洋里的塑料垃圾</strong><p>小心塑料瓶、黑色塑料袋和透明塑料袋。渔网很少见，平均每 100 个海洋障碍约 1～2 个。碰到渔网会扣一颗爱心，稍等自动挣脱；深绿色落网有提前预警，可以换道或跳过。</p></li>
+        <li><strong>星星与皮肤商城</strong><p>草地和海洋跑道上会随机出现发光的金色五角星，收集一颗获得 1 积分，管道上不会出现。每实际跳过 15 个障碍生成一次商城，换道躲避、空跳和管道不计入。点击「进入商城 → 皮肤 → 水果／动物」，旋转查看外观。点击未解锁皮肤的兑换按钮，确认兑换后解锁，再点击穿戴；积分不足会提示。一次只能穿一件皮肤，积分和已解锁皮肤会保存在本机。</p></li>
         <li><strong>向 1000 分出发</strong><p>达到 1000 分即可通关。点击「暂停」休息，电脑也可按 P 或 Esc 暂停或继续。切换标签页会自动暂停。</p></li>
       </ul>
       <button class="primary-button" id="help-done">知道啦，去跳跳！</button>

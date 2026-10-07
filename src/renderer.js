@@ -1,5 +1,5 @@
 import * as THREE from '../node_modules/three/build/three.module.js';
-import { RULES } from './game.js';
+import { RULES, SKINS } from './game.js';
 
 const laneX = (lane) => (lane - 1) * RULES.laneWidth;
 const depth = (x) => 2 - (x - RULES.chickenX) * RULES.worldScale;
@@ -34,6 +34,10 @@ export class Renderer {
     this.oceanScenery = this.makeScenery(true);
     this.chicken = this.makeChicken();
     this.scene.add(this.chicken);
+    this.chickenBody = [...this.chicken.children];
+    this.skinModels = new Map(SKINS.map(({ id }) => [id, this.makeSkin(id)]));
+    for (const model of this.skinModels.values()) this.chicken.add(model);
+    this.rewardMeshes = new Map();
     this.bubble = this.sphere(this.chicken, '#dcffff', [0, .9, 0], [.95, 1.05, .95], .1);
     this.bubble.material = new THREE.MeshPhongMaterial({ color: '#dcffff', transparent: true, opacity: .10, shininess: 100, depthWrite: false });
     this.caughtMesh = this.makeNet(1.4, 1.2, false);
@@ -367,6 +371,140 @@ export class Renderer {
     return chick;
   }
 
+  makeSkin(id) {
+    const group = new THREE.Group();
+    if (id === 'pig') {
+      this.sphere(group, '#f4aeb7', [0, .82, 0], [.68, .65, .61]);
+      this.sphere(group, '#fa8ea1', [0, .88, -.60], [.30, .20, .11]);
+      for (const side of [-1, 1]) {
+        this.sphere(group, '#a65f77', [side * .11, .90, -.706], [.035, .055, .015]);
+        const ear = this.mesh(group, new THREE.ConeGeometry(.23, .45, 3), '#f4aeb7', [side * .42, 1.43, 0]);
+        ear.rotation.z = side * -.3;
+        this.sphere(group, '#f97e9c', [side * .45, 1.42, -.08], [.09, .13, .045]);
+        this.box(group, '#965a6e', [.22, .18, .26], [side * .30, .09, 0]);
+      }
+      const curl = new THREE.CatmullRomCurve3(Array.from({ length: 25 }, (_, i) => {
+        const a = i / 24 * Math.PI * 3;
+        return new THREE.Vector3(Math.cos(a) * .10, .78 + Math.sin(a) * .10, .59 + i / 24 * .25);
+      }));
+      this.mesh(group, new THREE.TubeGeometry(curl, 24, .035, 6, false), '#ec8da1');
+    } else if (id === 'banana') {
+      const curve = new THREE.CatmullRomCurve3([
+        new THREE.Vector3(-.40, .18, 0), new THREE.Vector3(.04, .48, 0),
+        new THREE.Vector3(.27, 1.02, 0), new THREE.Vector3(.12, 1.60, 0),
+      ]);
+      this.mesh(group, new THREE.TubeGeometry(curve, 24, .29, 10, false), '#ffe05c');
+      this.rod(group, [.12, 1.58, 0], [.08, 1.81, 0], .085, '#8d7040');
+      this.sphere(group, '#8d7040', [-.42, .17, 0], [.09, .08, .09]);
+      for (const side of [-1, 1]) {
+        this.rod(group, [side * .12, .62, -.16], [side * .48, .35, -.08], .10, '#fff08e');
+        this.box(group, '#c3973e', [.17, .12, .23], [side * .20, .07, 0]);
+      }
+    } else if (id === 'dragonfruit') {
+      this.sphere(group, '#ef5a98', [0, .84, 0], [.58, .74, .52]);
+      this.sphere(group, '#fff6dc', [0, .88, -.44], [.42, .53, .12]);
+      for (let i = 0; i < 18; i++) {
+        const a = i * 2.4, y = .40 + (i % 5) * .20;
+        this.sphere(group, '#554b53', [Math.sin(a) * .29, y, -.55], [.018, .027, .012]);
+      }
+      for (let i = 0; i < 12; i++) {
+        const a = i * Math.PI / 3, y = .45 + Math.floor(i / 6) * .67;
+        const leaf = this.mesh(group, new THREE.ConeGeometry(.13, .43, 3), '#8dc65b', [Math.cos(a) * .55, y, Math.sin(a) * .48]);
+        leaf.rotation.z = -Math.cos(a) * .9; leaf.rotation.x = Math.sin(a) * .9;
+      }
+      for (const side of [-1, 1]) this.box(group, '#8dc65b', [.19, .13, .25], [side * .22, .07, 0]);
+    } else if (SKINS.find((skin) => skin.id === id)?.category === 'animal') {
+      const color = { cat: '#e7b06c', dog: '#c1946e', rabbit: '#fff4ec', panda: '#f7f4e8', bear: '#9d7153' }[id];
+      this.sphere(group, color, [0, .79, 0], [.62, .65, .56]);
+      this.sphere(group, color, [0, 1.24, -.10], [.48, .43, .44]);
+      for (const side of [-1, 1]) {
+        if (id === 'cat') this.mesh(group, new THREE.ConeGeometry(.20, .38, 3), color, [side * .32, 1.65, -.10]);
+        else this.sphere(group, id === 'panda' ? '#424641' : color, [side * .34, id === 'rabbit' ? 1.85 : 1.57, -.03], id === 'rabbit' ? [.14, .50, .12] : id === 'dog' ? [.16, .32, .14] : [.19, .19, .13]);
+        this.sphere(group, id === 'panda' ? '#424641' : color, [side * .29, .12, -.1], [.19, .15, .26]);
+        if (id === 'panda') this.sphere(group, '#424641', [side * .19, 1.3, -.48], [.12, .14, .04]);
+        this.sphere(group, '#303832', [side * .18, 1.32, -.52], [.04, .055, .025]);
+      }
+      this.sphere(group, '#fff0d9', [0, 1.11, -.51], [.22, .15, .07]);
+      this.sphere(group, '#64504c', [0, 1.18, -.59], [.065, .045, .03]);
+      this.sphere(group, color, [0, .58, .58], id === 'rabbit' ? [.17, .17, .17] : [.10, .12, .35]);
+    } else {
+      const color = { apple: '#e96a62', orange: '#ffac47', watermelon: '#79b760', strawberry: '#ef7290', grape: '#ac88c8' }[id];
+      if (id === 'grape') {
+        for (let i = 0; i < 10; i++) {
+          const a = i * 2.4; this.sphere(group, color, [Math.sin(a) * .32, .42 + Math.floor(i / 3) * .28, Math.cos(a) * .30], [.28, .28, .28]);
+        }
+      } else this.sphere(group, color, [0, .85, 0], id === 'strawberry' ? [.53, .68, .5] : [.65, .66, .60]);
+      this.rod(group, [0, 1.42, 0], [.08, 1.68, 0], .045, '#7d6346');
+      this.sphere(group, '#80af58', [.17, 1.58, 0], [.24, .07, .12]).rotation.z = .4;
+      if (id === 'watermelon') {
+        for (let i = 0; i < 8; i++) {
+          const a = i * Math.PI / 4;
+          const curve = new THREE.CatmullRomCurve3([new THREE.Vector3(Math.sin(a) * .3, .3, Math.cos(a) * .3), new THREE.Vector3(Math.sin(a) * .655, .85, Math.cos(a) * .605), new THREE.Vector3(Math.sin(a) * .3, 1.4, Math.cos(a) * .3)]);
+          this.mesh(group, new THREE.TubeGeometry(curve, 12, .027, 5, false), '#376b42');
+        }
+      }
+      if (id === 'strawberry') for (let i = 0; i < 20; i++) {
+        const a = i * 2.4, y = .4 + (i % 5) * .18;
+        this.sphere(group, '#ffe493', [Math.sin(a) * .5, y, Math.cos(a) * .47], [.018, .035, .016]);
+      }
+      for (const side of [-1, 1]) this.box(group, '#80af58', [.19, .12, .25], [side * .22, .07, 0]);
+    }
+    for (const side of [-1, 1]) this.sphere(group, '#414839', [side * .15, 1.07, id === 'pig' ? -.57 : id === 'banana' ? -.27 : -.60], [.035, .055, .025]);
+    return group;
+  }
+
+  makeStar() {
+    const group = new THREE.Group(), shape = new THREE.Shape();
+    for (let i = 0; i < 10; i++) {
+      const angle = Math.PI / 2 + i * Math.PI / 5, radius = i % 2 ? .17 : .38;
+      const x = Math.cos(angle) * radius, y = Math.sin(angle) * radius;
+      if (i === 0) shape.moveTo(x, y); else shape.lineTo(x, y);
+    }
+    shape.closePath();
+    const star = this.mesh(group, new THREE.ExtrudeGeometry(shape, { depth: .10, bevelEnabled: true, bevelSize: .025, bevelThickness: .025, bevelSegments: 2, steps: 1 }), '#ffd13c');
+    star.material = new THREE.MeshStandardMaterial({ color: '#ffd13c', emissive: '#ffa900', emissiveIntensity: .8, metalness: .35, roughness: .3 });
+    const canvas = document.createElement('canvas'); canvas.width = canvas.height = 64;
+    const ctx = canvas.getContext('2d'), glow = ctx.createRadialGradient(32, 32, 2, 32, 32, 32);
+    glow.addColorStop(0, '#fff2a5aa'); glow.addColorStop(.4, '#ffd54a55'); glow.addColorStop(1, '#ffd54a00');
+    ctx.fillStyle = glow; ctx.fillRect(0, 0, 64, 64);
+    const halo = new THREE.Sprite(new THREE.SpriteMaterial({ map: new THREE.CanvasTexture(canvas), transparent: true, depthWrite: false, blending: THREE.AdditiveBlending }));
+    halo.scale.set(1.4, 1.4, 1); group.add(halo);
+    return group;
+  }
+
+  makeShop() {
+    const group = new THREE.Group();
+    this.box(group, '#f5d9a6', [1.8, 1.5, 1.2], [0, .75, 0]);
+    this.mesh(group, new THREE.ConeGeometry(1.5, .7, 4), '#e98182', [0, 1.8, 0]).rotation.y = Math.PI / 4;
+    this.box(group, '#795f48', [.65, .95, .04], [0, .48, .62]);
+    const canvas = document.createElement('canvas'); canvas.width = 256; canvas.height = 64;
+    const ctx = canvas.getContext('2d'); ctx.fillStyle = '#fff6da'; ctx.fillRect(0, 0, 256, 64);
+    ctx.fillStyle = '#76523d'; ctx.font = 'bold 30px sans-serif'; ctx.textAlign = 'center'; ctx.fillText('★ 皮肤商城', 128, 43);
+    const label = new THREE.Sprite(new THREE.SpriteMaterial({ map: new THREE.CanvasTexture(canvas) }));
+    label.position.y = 2.5; label.scale.set(2.7, .67, 1); group.add(label);
+    return group;
+  }
+
+  renderRewards(game) {
+    const active = new Set();
+    for (const [kind, rewards] of [['star', game.stars], ['shop', game.shops]]) {
+      for (const reward of rewards) {
+        const key = `${game.world}/${kind}/${reward.id}`; active.add(key);
+        let mesh = this.rewardMeshes.get(key);
+        if (!mesh) {
+          if (!this.templates.has(kind)) this.templates.set(kind, kind === 'star' ? this.makeStar() : this.makeShop());
+          mesh = this.templates.get(kind).clone(true); this.scene.add(mesh); this.rewardMeshes.set(key, mesh);
+        }
+        mesh.position.set(kind === 'star' ? laneX(reward.lane) : 4.9,
+          kind === 'star' ? (reward.height + Math.sin(game.time * 2 + reward.id) * 7) * RULES.worldScale : 0, depth(reward.x));
+        if (kind === 'star') { mesh.children[0].rotation.y = game.time * .65; mesh.children[0].rotation.z = Math.sin(game.time * .4) * .1; }
+      }
+    }
+    for (const [key, mesh] of this.rewardMeshes) {
+      if (!active.has(key)) { this.scene.remove(mesh); this.rewardMeshes.delete(key); }
+    }
+  }
+
   makeNet(width, height, fresh) {
     const group = new THREE.Group(), color = fresh ? '#326b55' : '#919473';
     const top = (x, z) => height * Math.max(.1, 1 - (Math.abs(x) + Math.abs(z)) / (width * 1.25));
@@ -565,6 +703,9 @@ export class Renderer {
         this.obstacleMeshes.delete(id);
       }
     }
+    this.renderRewards(game);
+    for (const child of this.chickenBody) child.visible = !game.equippedSkin;
+    for (const [id, model] of this.skinModels) model.visible = game.equippedSkin === id;
     const stuck = game.player.stuckRemaining > 0;
     const stride = game.phase === 'running' && game.grounded && !stuck ? Math.sin(game.distance * .10) : 0;
     this.chicken.position.set(laneX(game.player.lanePosition), (RULES.ground - game.player.y) * RULES.worldScale + Math.abs(stride) * .04, 2);
@@ -582,6 +723,31 @@ export class Renderer {
       particle.mesh.rotation.x = age * 3; particle.mesh.scale.setScalar(Math.max(.05, 1 - age / particle.duration));
       return true;
     });
+    this.webgl.render(this.scene, this.camera);
+  }
+}
+
+export class SkinPreview {
+  constructor(canvas, builder) {
+    this.canvas = canvas;
+    this.webgl = new THREE.WebGLRenderer({ canvas, antialias: true, alpha: true });
+    this.webgl.setPixelRatio(Math.min(window.devicePixelRatio || 1, 2));
+    this.scene = new THREE.Scene();
+    this.scene.add(new THREE.HemisphereLight('#fff8df', '#a3b1a0', 3));
+    const light = new THREE.DirectionalLight('#ffffff', 3); light.position.set(3, 5, 5); this.scene.add(light);
+    this.camera = new THREE.PerspectiveCamera(35, 1, .1, 20);
+    this.camera.position.set(0, 1.6, -4.5); this.camera.lookAt(0, .85, 0);
+    this.models = new Map(SKINS.map(({ id }) => [id, builder.makeSkin(id)]));
+    for (const model of this.models.values()) this.scene.add(model);
+  }
+  render(id, angle) {
+    const { width, height } = this.canvas.getBoundingClientRect();
+    if (!width || !height) return;
+    if (this.width !== width || this.height !== height) {
+      this.width = width; this.height = height;
+      this.webgl.setSize(width, height, false); this.camera.aspect = width / height; this.camera.updateProjectionMatrix();
+    }
+    for (const [key, model] of this.models) { model.visible = key === id; model.rotation.y = angle; }
     this.webgl.render(this.scene, this.camera);
   }
 }

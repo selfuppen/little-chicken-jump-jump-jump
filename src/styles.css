@@ -97,3 +97,28 @@ dialog h2 { font-size: 25px; margin: 18px 0; }
 @media (max-width: 420px) { .game-field { min-height: 360px; } .overlay { align-items: flex-start; padding: 105px 15px 40px; } .overlay-card { padding: 12px 23px; } .card-chick { width: 30px; height: 30px; margin: 7px auto; } .overlay p { line-height: 1.7; } .card-hint { margin-top: 8px; } .game-field[data-phase="paused"] .card-hint, .game-field[data-phase="paused"] .card-chick { display: none; } .game-field[data-phase="paused"] .card-badge { margin-bottom: 10px; } }
 @media (max-height: 500px) and (min-width: 550px) { .page { width: calc(100% - 32px); } .topbar { height: 43px; } .brand img { width: 26px; height: 26px; } .brand { font-size: 12px; } .intro { display: none; } .game-shell { margin: 12px auto; width: min(100%, calc((100svh - 90px) * 2)); } .game-field { aspect-ratio: 2 / 1; min-height: 0; } .play-guide, .footer-note { display: none; } .hud { inset: 13px 17px auto; } .hud-caption { font-size: 8px; } .hearts svg { width: 20px; height: 20px; } .score { font-size: 32px; } .overlay { padding: 50px 15px 25px; } .overlay-card { width: 290px; padding: 12px 23px; } .card-chick { display: none; } .overlay h2 { font-size: 18px; margin-top: 10px; } .overlay p { font-size: 10px; margin-bottom: 12px; } .primary-button { padding: 10px; font-size: 11px; } .card-hint { font-size: 8px; margin-top: 11px; } .world-pill, .speed-pill { bottom: 10px; font-size: 9px; } .toast { top: 75px; } }
 @media (prefers-reduced-motion: reduce) { *, *::before, *::after { animation-duration: .01ms !important; transition-duration: .01ms !important; } }
+
+.reward-panel { position: absolute; right: 0; top: 70px; text-align: right; display: flex; flex-direction: column; gap: 5px; color: #fff6c3; font-size: 12px; text-shadow: 0 1px 3px #476b51; pointer-events: auto; }
+.reward-panel > span:nth-child(2) { font-size: 10px; color: white; }
+#shop-button { border: 1px solid #fff7d3; border-radius: 10px; background: #fff2b8; color: #665232; padding: 8px 12px; cursor: pointer; }
+#shop-dialog { width: min(680px, calc(100% - 28px)); max-height: calc(100svh - 32px); overflow: auto; }
+.shop-balance { font-size: 13px; color: #8b6d3a; }
+.shop-entry { display: flex; justify-content: space-between; gap: 20px; width: 100%; padding: 22px; margin: 12px 0; border: 1px solid #e1dfc8; border-radius: 15px; background: #f5f1dd; color: #485641; font: inherit; font-weight: bold; cursor: pointer; }
+.shop-entry span { font-size: 12px; font-weight: normal; }
+.skin-grid { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 8px; margin-top: 12px; }
+.skin-choice { min-width: 0; padding: 12px; background: #f5f1dd; border: 1px solid #e1dfc8; border-radius: 12px; color: #4b5d43; cursor: pointer; }
+.skin-choice[aria-pressed="true"] { background: #e0eccb; border-color: #769457; }
+.skin-choice span { display: block; margin-top: 5px; font-size: 11px; }
+.skin-detail { text-align: center; }
+#skin-preview { display: block; width: 100%; height: 210px; touch-action: none; cursor: grab; background: radial-gradient(ellipse, #ecefdb, transparent 65%); }
+.rotation-control { display: flex; justify-content: center; align-items: center; gap: 12px; font-size: 12px; color: #728065; }
+#skin-angle { width: min(230px, 60%); accent-color: #829b65; }
+.skin-detail h3 { margin: 12px 0; }
+#purchase-confirm { padding: 12px 16px; border: 1px solid #e6c578; border-radius: 12px; background: #fff4cc; margin-top: 14px; }
+#shop-status { min-height: 20px; color: #986338; font-size: 13px; }
+#shop-done, #remove-skin { display: inline-block; margin: 8px; }
+[hidden] { display: none !important; }
+@media (max-width: 700px) { .reward-panel { font-size: 10px; } #shop-button { padding: 6px 8px; } .hud { gap: 8px; flex-wrap: wrap; } #shop-dialog { padding: 22px 18px; } #skin-preview { height: 180px; } }
+
+.hud { z-index: 2; }
+@media (max-width: 700px) { .reward-panel { top: 60px; } .skin-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); } }

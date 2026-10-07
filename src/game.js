@@ -9,6 +9,22 @@ export const RULES = Object.freeze({
   laneWidth: 2.35, worldScale: 0.018,
 });
 
+export const SKINS = Object.freeze([
+  { id: 'pig', name: '小猪', price: 100, category: 'animal' },
+  { id: 'cat', name: '小猫', price: 30, category: 'animal' },
+  { id: 'dog', name: '小狗', price: 40, category: 'animal' },
+  { id: 'rabbit', name: '兔子', price: 20, category: 'animal' },
+  { id: 'panda', name: '熊猫', price: 80, category: 'animal' },
+  { id: 'bear', name: '小熊', price: 60, category: 'animal' },
+  { id: 'banana', name: '香蕉', price: 50, category: 'fruit' },
+  { id: 'dragonfruit', name: '火龙果', price: 10, category: 'fruit' },
+  { id: 'apple', name: '苹果', price: 20, category: 'fruit' },
+  { id: 'orange', name: '橙子', price: 30, category: 'fruit' },
+  { id: 'watermelon', name: '西瓜', price: 60, category: 'fruit' },
+  { id: 'strawberry', name: '草莓', price: 40, category: 'fruit' },
+  { id: 'grape', name: '葡萄', price: 70, category: 'fruit' },
+].map((skin) => Object.freeze(skin)));
+
 const GRASS_OBSTACLES = Object.freeze(['bone', 'fishbone', 'branch', 'applecore', 'can']);
 const OCEAN_OBSTACLES = Object.freeze(['bottle', 'blackbag', 'clearbag']);
 
@@ -18,6 +34,9 @@ export const netWarningForScore = (score) => Math.max(RULES.netWarningMin, 1.7 -
 export class Game {
   constructor(random = Math.random) {
     this.random = random;
+    this.points = 0;
+    this.unlockedSkins = new Set();
+    this.equippedSkin = null;
     this.reset();
   }
 
@@ -25,6 +44,11 @@ export class Game {
     this.phase = 'ready';
     this.world = 'grass';
     this.score = 0;
+    this.jumpedCount = 0;
+    this.shopAvailable = false;
+    this.stars = [];
+    this.shops = [];
+    this.starSpawnIn = 1;
     this.hearts = 3;
     this.time = 0;
     this.distance = 0;
@@ -65,6 +89,70 @@ export class Game {
     this.player.lane = lane;
     this.emit('lane-change', { lane });
     return true;
+  }
+
+  unlockSkin(id, confirmed = false) {
+    const skin = SKINS.find((value) => value.id === id);
+    if (!skin) return 'invalid';
+    if (this.unlockedSkins.has(id)) return 'owned';
+    if (this.points < skin.price) return 'insufficient';
+    if (!confirmed) return 'confirmation';
+    this.points -= skin.price;
+    this.unlockedSkins.add(id);
+    this.emit('skin-unlocked', { skin: id });
+    return 'unlocked';
+  }
+
+  equipSkin(id) {
+    if (id !== null && !this.unlockedSkins.has(id)) return false;
+    this.equippedSkin = id;
+    return true;
+  }
+
+  recordJumpedObstacle() {
+    this.jumpedCount++;
+    if (this.jumpedCount % 10 === 0) {
+      this.hearts = Math.min(3, Math.round((this.hearts + .1) * 10) / 10);
+      this.emit('heal');
+    }
+    if (this.jumpedCount % 15 === 0) {
+      this.shopAvailable = true;
+      this.shops.push({ id: this.nextId++, x: RULES.spawnX });
+      this.emit('shop-spawn');
+    }
+  }
+
+  spawnStar() {
+    const lane = Math.floor(this.random() * RULES.lanes);
+    const x = RULES.spawnX;
+    // Reserve the whole pipe row, even when it lies in another lane.
+    if (this.obstacles.some((o) => o.kind === 'pipe' && Math.abs(o.x - x) < 160)) return;
+    this.stars.push({ id: this.nextId++, x, lane, height: 25 + this.random() * 65 });
+  }
+
+  updateRewards(dt, motion) {
+    this.starSpawnIn -= dt;
+    if (this.starSpawnIn <= 0) {
+      this.spawnStar();
+      this.starSpawnIn = 1.2 + this.random() * 1.8;
+    }
+    for (const star of this.stars) {
+      star.x -= motion;
+      const height = star.height + Math.sin(this.time * 2 + star.id) * 7;
+      if (Math.abs(star.x - RULES.chickenX) < 28 &&
+          Math.abs(this.player.lanePosition - star.lane) < .42 &&
+          Math.abs(RULES.ground - this.player.y + 24 - height) < 30) {
+        star.collected = true;
+        this.points++;
+        this.emit('star-collected');
+      }
+    }
+    this.stars = this.stars.filter((star) => !star.collected && star.x > -80);
+    for (const shop of this.shops) {
+      shop.x -= motion;
+      if (shop.x <= RULES.chickenX) { shop.arrived = true; this.emit('shop-arrive'); }
+    }
+    this.shops = this.shops.filter((shop) => !shop.arrived);
   }
 
   randomPipeInterval() {
@@ -113,6 +201,7 @@ export class Game {
       if (kind === 'fallingnet') warningTime = Math.max(warningTime, obstacle.warningDuration + RULES.netFallDuration);
     }
     if (isPipe) {
+      this.stars = this.stars.filter((star) => Math.abs(star.x - RULES.spawnX) >= 160);
       this.regularCount = 0;
       this.pipeAfter = this.randomPipeInterval();
       this.spawnIn += .35;
@@ -126,9 +215,11 @@ export class Game {
   enterOcean(pipe) {
     this.grassTrack = {
       obstacles: this.obstacles.filter((obstacle) => obstacle !== pipe),
+      stars: this.stars, shops: this.shops, starSpawnIn: this.starSpawnIn,
       spawnIn: this.spawnIn, regularCount: this.regularCount, pipeAfter: this.pipeAfter, distance: this.distance,
     };
     this.world = 'ocean';
+    this.stars = []; this.shops = []; this.starSpawnIn = 1;
     this.oceanTime = 0;
     this.distance = 0;
     this.obstacles = [];
@@ -151,6 +242,8 @@ export class Game {
     this.caughtNet = null;
     const track = this.grassTrack;
     this.obstacles = track?.obstacles ?? [];
+    this.stars = track?.stars ?? []; this.shops = track?.shops ?? [];
+    this.starSpawnIn = track?.starSpawnIn ?? 1;
     this.distance = track?.distance ?? 0;
     this.regularCount = track?.regularCount ?? 0;
     this.pipeAfter = track?.pipeAfter ?? this.randomPipeInterval();
@@ -161,6 +254,7 @@ export class Game {
     const shift = ahead.length ? Math.max(0, nearestSafeX - Math.min(...ahead.map((obstacle) => obstacle.x))) : 0;
     this.obstacles = ahead;
     for (const obstacle of this.obstacles) obstacle.x += shift;
+    for (const reward of [...this.stars, ...this.shops]) reward.x += shift;
     this.spawnIn = Math.max(this.spawnIn, RULES.returnSafety);
     this.emit('ocean-exit');
   }
@@ -168,7 +262,7 @@ export class Game {
   touchObstacle(obstacle) {
     obstacle.hit = true;
     if (this.invincible > 0) return;
-    this.hearts--;
+    this.hearts = Math.max(0, Math.round((this.hearts - 1) * 10) / 10);
     this.invincible = RULES.invincibility;
     const net = obstacle.kind === 'oldnet' || obstacle.kind === 'fallingnet';
     if (net) {
@@ -239,6 +333,7 @@ export class Game {
     this.distance += motion;
     this.spawnIn -= dt;
     if (this.spawnIn <= 0) this.spawn();
+    this.updateRewards(dt, motion);
     const heldRows = new Set(this.obstacles.filter((o) => o.kind === 'fallingnet' && o.stage !== 'landed').map((o) => o.row).filter((row) => row !== undefined));
     for (const obstacle of this.obstacles) {
       if (obstacle.kind === 'fallingnet' && obstacle.stage !== 'landed') {
@@ -272,6 +367,7 @@ export class Game {
       if (!obstacle.passed && obstacle.x + obstacle.width < RULES.chickenX - 18) {
         obstacle.passed = true;
         if (!obstacle.hit) {
+          if (obstacle.cleared && obstacle.kind !== 'pipe') this.recordJumpedObstacle();
           this.score = Math.min(RULES.goal, this.score + 1);
           this.emit('score', { lane: this.player.lanePosition, y: this.player.y - 70 });
           if (this.score === RULES.goal) { this.phase = 'won'; this.emit('win'); return; }

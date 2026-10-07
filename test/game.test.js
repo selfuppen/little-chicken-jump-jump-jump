@@ -1,6 +1,6 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import { Game, RULES, speedForScore, netWarningForScore } from '../src/game.js';
+import { Game, RULES, SKINS, speedForScore, netWarningForScore } from '../src/game.js';
 
 function running() { const game = new Game(() => .5); game.start(); game.spawnIn = 100; return game; }
 function advance(game, seconds) { for (let t = 0; t < seconds - 1e-9; t += 1 / 120) game.update(Math.min(1 / 120, seconds - t)); }
@@ -378,4 +378,81 @@ test('falling net warnings hold the whole row, and pause freezes lane changes', 
   game.moveLane(1); advance(game, .05); game.pause();
   const position = game.player.lanePosition; advance(game, 1); assert.equal(game.player.lanePosition, position);
   game.resume(); advance(game, 2.5); assert.ok(bag.x < RULES.spawnX); assert.ok(Math.abs(bag.x - net.x) < .01);
+});
+
+
+test('only actual cleared obstacles count toward shops and healing; pipes, dodges, hits and empty jumps do not', () => {
+  const game = running();
+  const dodged = game.createObstacle('bone', RULES.chickenX - 100, 0);
+  const pipe = game.createObstacle('pipe', RULES.chickenX - 150, 1); pipe.cleared = true;
+  const hit = game.createObstacle('bone', RULES.chickenX - 100, 1); hit.hit = true; hit.cleared = true;
+  game.obstacles.push(dodged, pipe, hit);
+  game.jump(); advance(game, 1);
+  assert.equal(game.jumpedCount, 0); assert.equal(game.shops.length, 0);
+  obstacle(game, 'bone', RULES.chickenX + game.speed * .38);
+  game.jump(); advance(game, 1);
+  assert.equal(game.jumpedCount, 1);
+  advance(game, 1); assert.equal(game.jumpedCount, 1);
+});
+
+test('each 15 actual jumps generates exactly one shop, with independent tenth-heart healing milestones', () => {
+  const game = running(); game.hearts = 1;
+  for (let i = 0; i < 9; i++) game.recordJumpedObstacle();
+  assert.equal(game.hearts, 1); assert.equal(game.shops.length, 0);
+  game.recordJumpedObstacle(); assert.equal(game.hearts, 1.1);
+  for (let i = 0; i < 4; i++) game.recordJumpedObstacle();
+  assert.equal(game.shops.length, 0);
+  game.recordJumpedObstacle(); assert.equal(game.shops.length, 1); assert.equal(game.shopAvailable, true);
+  game.enterOcean(game.createObstacle('pipe'));
+  for (let i = 0; i < 15; i++) game.recordJumpedObstacle();
+  assert.equal(game.jumpedCount, 30); assert.equal(game.hearts, 1.3); assert.equal(game.shops.length, 1);
+  game.returnToGrass(); assert.equal(game.shops.length, 1);
+  game.hearts = 3;
+  for (let i = 0; i < 10; i++) game.recordJumpedObstacle();
+  assert.equal(game.hearts, 3);
+  game.hearts = .1; game.touchObstacle(game.createObstacle('bone'));
+  assert.equal(game.hearts, 0); assert.equal(game.phase, 'gameover');
+});
+
+test('stars collect once in the matching lane and height in either world, and freeze while paused', () => {
+  for (const world of ['grass', 'ocean']) {
+    const game = world === 'grass' ? running() : underwater(); game.starSpawnIn = 100;
+    game.stars.push({ id: 100, x: RULES.chickenX + 5, lane: 1, height: 24 });
+    game.stars.push({ id: 101, x: RULES.chickenX + 5, lane: 0, height: 24 });
+    game.stars.push({ id: 102, x: RULES.chickenX + 5, lane: 1, height: 120 });
+    advance(game, .01); assert.equal(game.points, 1); assert.equal(game.stars.length, 2);
+    game.pause(); const x = game.stars[0].x; advance(game, 2); assert.equal(game.stars[0].x, x);
+    game.resume(); advance(game, 1); assert.equal(game.points, 1);
+  }
+});
+
+test('stars never spawn on pipe rows and later pipes remove previously spawned stars from their row', () => {
+  for (const world of ['grass', 'ocean']) {
+    const game = world === 'grass' ? running() : underwater();
+    game.obstacles.push(game.createObstacle('pipe', RULES.spawnX, 0));
+    game.spawnStar(); assert.equal(game.stars.length, 0);
+    game.obstacles = []; game.spawnStar(); assert.equal(game.stars.length, 1);
+    game.regularCount = game.pipeAfter; game.spawn();
+    assert.equal(game.obstacles[0].kind, 'pipe'); assert.equal(game.stars.length, 0);
+  }
+});
+
+test('13 skins have the requested categories and original prices, and require confirmation before purchase', () => {
+  assert.equal(SKINS.filter((skin) => skin.category === 'animal').length, 6);
+  assert.equal(SKINS.filter((skin) => skin.category === 'fruit').length, 7);
+  for (const [id, price] of [['pig', 100], ['banana', 50], ['dragonfruit', 10]]) assert.equal(SKINS.find((skin) => skin.id === id).price, price);
+  const game = running();
+  assert.equal(game.equipSkin('pig'), false);
+  assert.equal(game.unlockSkin('pig', true), 'insufficient');
+  game.points = 160;
+  assert.equal(game.unlockSkin('pig'), 'confirmation'); assert.equal(game.points, 160);
+  assert.equal(game.unlockSkin('pig', true), 'unlocked'); assert.equal(game.points, 60); assert.equal(game.equippedSkin, null);
+  assert.equal(game.unlockSkin('pig', true), 'owned'); assert.equal(game.points, 60);
+  assert.equal(game.equipSkin('pig'), true);
+  game.unlockSkin('banana', true); game.equipSkin('banana');
+  assert.equal(game.equippedSkin, 'banana'); assert.equal(game.points, 10);
+  assert.equal(game.equipSkin('dragonfruit'), false); assert.equal(game.equippedSkin, 'banana');
+  game.start(); assert.equal(game.points, 10); assert.equal(game.equippedSkin, 'banana');
+  assert.equal(game.jumpedCount, 0); assert.equal(game.shopAvailable, false);
+  assert.equal(game.equipSkin(null), true); assert.equal(game.equippedSkin, null);
 });
